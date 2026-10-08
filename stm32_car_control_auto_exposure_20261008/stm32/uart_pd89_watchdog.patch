@@ -1,0 +1,83 @@
+--- a/HARDWARE/Inc/uartx.h
++++ b/HARDWARE/Inc/uartx.h
+@@ -45,7 +45,7 @@
+ 
+ /*--------UART3 config--------*/
+ #define ENABLE_UART3_CLOCK  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3,ENABLE)
+-#if 1 //PB10、PB11
++#if 0 //PB10、PB11
+ #define ENABLE_UART3_TX_PIN_CLOCK   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB,ENABLE)
+ #define ENABLE_UART3_RX_PIN_CLOCK   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB,ENABLE)
+ #define UART3_TX_PORT       GPIOB
+@@ -59,8 +59,8 @@
+ #define ENABLE_UART3_RX_PIN_CLOCK   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD,ENABLE)
+ #define UART3_TX_PORT       GPIOD
+ #define UART3_RX_PORT       GPIOD
+-#define UART3_PIN_TX        GPIO_Pin_8
+-#define UART3_PIN_RX        GPIO_Pin_9
++#define UART3_TX_PIN        GPIO_Pin_8
++#define UART3_RX_PIN        GPIO_Pin_9
+ #define UART3_TX_Soure      GPIO_PinSource8
+ #define UART3_RX_Soure      GPIO_PinSource9
+ #endif
+--- a/SYSTEM/sys/sys.c
++++ b/SYSTEM/sys/sys.c
+@@ -39,7 +39,7 @@
+ 	
+ 	p->Time_count = 0;
+ 	p->HardWare_charger = 0;
+-	p->SecurityLevel = 1; //系统安全等级,默认设置1.不带命令丢失保护
++	p->SecurityLevel = 0; // FPGA link: enable command-loss watchdog.
+ 	p->LED_delay = 1; //系统状态指示灯闪烁间隔,单位 ms
+ }
+ 
+--- a/BALANCE/balance_task.c
++++ b/BALANCE/balance_task.c
+@@ -60,6 +60,7 @@
+ 		//机器人上电自检
+         //等陀螺仪初始化完成后,检测机器人型号是否选择错误
+         //When the gyroscope is initialized, check whether the robot model is selected incorrectly
++#if FPGA_ENABLE_STARTUP_MOTION_CHECK
+         if(CONTROL_DELAY<SysVal.Time_count && SysVal.Time_count<CONTROL_DELAY+200)
+         {
+             Drive_Motor(0.2f,0,0);//低速前进测试
+@@ -73,6 +74,12 @@
+ 			SysVal.LED_delay = 500;
+         }
+ 		
++#else
++        /* No autonomous motion on boot in the FPGA interface package. */
++        robot_check.check_end = 1;
++        Drive_Motor(0,0,0);
++#endif
++
+ 		//After the self-check is completed, obtain the control commands for the robot.
+         //自检结束后，获取机器人的控制命令
+         if(SysVal.Time_count>CONTROL_DELAY+230)
+@@ -82,7 +89,9 @@
+ 				//TODO:监测丢失,不同控制方式,监测丢失的频率不同,以实测生效为准.
+ 				//uart,ros,can,usb ps2,安卓app 可用,苹果app无法使用,航模需要其他实现
+ 				//TODO:安全等级只对uart,ros,can生效. ps2，app，航模信号丢失需要无条件停止
+-				robot_control.command_lostcount++;
++				/* Saturate the u8 watchdog counter; never wrap back to zero. */
++				if( robot_control.command_lostcount <= BALANCE_TASK_RATE )
++					robot_control.command_lostcount++;
+ 				if( robot_control.command_lostcount>BALANCE_TASK_RATE )
+ 					robot_control.Vx = 0 , robot_control.Vy = 0 , robot_control.Vz = 0;
+ 			}
+--- a/BALANCE/Inc/balance_task.h
++++ b/BALANCE/Inc/balance_task.h
+@@ -2,7 +2,12 @@
+ #define __BALANCE_H			  	 
+ #include "system.h"
+ 
+-#include "bsp_gamepad.h"
++#include "bsp_gamepad.h"
++
++/* Enable only for an explicit factory movement/encoder diagnostic. */
++#ifndef FPGA_ENABLE_STARTUP_MOTION_CHECK
++#define FPGA_ENABLE_STARTUP_MOTION_CHECK 0
++#endif
+ 
+ //RTOS任务配置
+ #define BALANCE_TASK_PRIO		4             //Task priority //任务优先级
