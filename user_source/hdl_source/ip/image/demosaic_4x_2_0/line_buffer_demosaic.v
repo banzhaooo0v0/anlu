@@ -95,13 +95,22 @@ module line_buffer_demosaic #(
     // 只有当valid_d0有效且tlast_lock_d0置位后，才输出有效数据
 
     // 实例化块存储器，用于数据的存储和读取
-    blk_mem_gen_demosaic blk_mem_gen_demosaic_r0 (
+    // One row is IMG_WIDTH/4 words; preserve vendor RAM mode/latency.
+    localparam LINE_ADDR_BITS = $clog2(IMG_WIDTH_4x);
+    ram_c36c2ca3b3a7 #(
+        .DATA_WIDTH_A(33), .DATA_WIDTH_B(33),
+        .ADDR_WIDTH_A(LINE_ADDR_BITS), .ADDR_WIDTH_B(LINE_ADDR_BITS),
+        .DATA_DEPTH_A(IMG_WIDTH_4x), .DATA_DEPTH_B(IMG_WIDTH_4x),
+        .REGMODE_A("NOREG"), .REGMODE_B("NOREG"),
+        .WRITEMODE_A("NORMAL"), .WRITEMODE_B("READBEFOREWRITE")
+    ) blk_mem_gen_demosaic_sized (
         .clka (I_clk  ),   // 写端口时钟信号
         .wea  (valid_d0),  // 写使能信号
-        .addra(addra  ),   // 写地址
+        .addra(addra[LINE_ADDR_BITS-1:0]),   // 写地址
         .dia (data_d0),   // 写数据
         .clkb (I_clk  ),   // 读端口时钟信号
-        .addrb(addrb  ),   // 读地址
+        .addrb(addrb[LINE_ADDR_BITS-1:0]),   // 读地址
+        .dib(33'd0), .web(1'b0), .doa(),
         .dob(O_data )    // 读数据输出
     );
 

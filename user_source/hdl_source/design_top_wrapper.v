@@ -11,6 +11,14 @@ module design_top_wrapper (
       
     inout wire [1:0]  I_button,
 
+    // HX1P35A J1/STM32 C50C control link.  All button inputs are active low.
+    output wire       O_car_tx,
+    input wire        I_car_rx,
+    input wire        I_car_arm_n,
+    input wire        I_car_stop_n,
+    input wire        I_car_obstacle_n,
+    input wire        I_car_slow_n,
+
     output wire       O_screen_pwm,
     output wire       O_tmds_ch0_p,
     output wire       O_tmds_ch1_p,
@@ -38,6 +46,9 @@ module design_top_wrapper (
     inout wire[1:0]   ddr_dqs_n   
 );
 
+
+    localparam integer VIDEO_WIDTH = 1280;
+    localparam integer VIDEO_HEIGHT = 720;
 
     wire        	S_100m_clk;
     wire        	S_24m_clk;
@@ -84,6 +95,10 @@ module design_top_wrapper (
 	wire 			S_ISP_O_tlast ;
 	wire 			S_ISP_O_tuser ;
 	wire 			S_ISP_O_tvalid; 
+	wire [127:0]	S_ISP_ORIG_tdata;
+	wire 			S_ISP_ORIG_tlast;
+	wire 			S_ISP_ORIG_tuser;
+	wire 			S_ISP_ORIG_tvalid;
 
 	wire [1:0]		S_algo_mode_24m;
 	reg [1:0]		S_algo_mode_sync_1;
@@ -95,6 +110,15 @@ module design_top_wrapper (
 	wire [7:0]  S_cnn_result_ascii;
 	wire        S_cnn_result_toggle;
 	wire        S_cnn_frame_drop;
+	wire        S_traffic_sign_busy;
+	wire        S_traffic_sign_done;
+	wire        S_traffic_sign_result_valid;
+	wire [4:0]  S_traffic_sign_result_class;
+	wire [7:0]  S_traffic_sign_result_ascii;
+	wire        S_traffic_sign_result_toggle;
+	wire        S_traffic_sign_frame_drop;
+    wire S_sign_hdmi_toggle, S_sign_hdmi_valid;
+    wire [7:0] S_sign_hdmi_ascii;
 	
 
     wire        S_ddr_clk;
@@ -130,6 +154,9 @@ module design_top_wrapper (
     wire[24:0]  S_vo_ddr_rd_addr; 
     reg         S_vo_ddr_ready;
     wire        S_vo_ddr_req;
+	wire        S_display_processed;
+	reg         S_display_processed_ddr1;
+	reg         S_display_processed_ddr2;
     reg         S_ddr_turn;
     reg         S_video_in_wr_busy_d;
     reg         S_video_out_rd_busy_d;
@@ -238,6 +265,7 @@ module design_top_wrapper (
 		.I_clk    (S_24m_clk),
 		.I_rst_n  (S_rst_n),
 		.I_button (I_button),
+        .I_cycle_button_n(I_car_slow_n),
 		.O_mode   (S_algo_mode_24m)
 	);
 
@@ -580,10 +608,15 @@ module design_top_wrapper (
 	
 
   
-  ae_set u_ae_set (
-      .I_clk(S_24m_clk),
-      .I_rst(~S_rst_n),
-      .I_btn(4'b1111),
+  sc500_auto_exposure u_auto_exposure (
+      .I_raw_clk(S_csi_rx_clk),
+      .I_raw_rst_n(S_rst_n),
+      .I_raw_frame_start(S_raw10_frame_start),
+      .I_raw_frame_end(S_raw10_frame_end),
+      .I_raw_valid(S_raw10_valid),
+      .I_raw_data(S_raw10_data),
+      .I_cfg_clk(S_24m_clk),
+      .I_cfg_rst(~S_rst_n),
       .I_cam_cfg_done(S_cam_cfg_done),
       .I_ae_cfg_done(S_ae_cfg_done),
       .O_ae_req(S_ae_req),
@@ -685,8 +718,8 @@ raw10_unpacket_2lane u_raw10_unpacket (
 
 //将数据转为stream流
 uial2axis #(
-.IMG_WIDTH(1024),
-.IMG_HEIGHT(600),
+.IMG_WIDTH(VIDEO_WIDTH),
+.IMG_HEIGHT(VIDEO_HEIGHT),
 .INPUT_DATA_WIDTH(40)
 ) 
 u_uial2axis (
@@ -703,25 +736,11 @@ u_uial2axis (
 );
 	
 
-image_correction #(
-    .DATA_WIDTH(40)
-)
-u_image_correction (
-    .I_clk   		(S_csi_rx_clk),
-    .I_rst_n 		(S_rst_n),
-					
-    .I_raw_data 	(S_axis_tdata),
-    .I_raw_frame_end 	(S_axis_tlast),
-    .I_raw_valid	(S_axis_tvalid),
-    .I_raw_frame_start 	(S_axis_tuser),
-					
-    .O_raw_tdata 	(S_raw_tdata ),
-    .O_raw_tlast 	(S_raw_tlast ),
-    .O_raw_tvalid	(S_raw_tvalid),
-    .O_raw_tuser 	(S_raw_tuser ),
-    .O_raw_tready 	(S_ISP_I_tready)
-);
-
+// Sensor now produces native 1280x720; retain its real frame/line markers.
+assign S_raw_tdata = S_axis_tdata;
+assign S_raw_tvalid = S_axis_tvalid;
+assign S_raw_tlast = S_axis_tlast;
+assign S_raw_tuser = S_axis_tuser;
 
 //cwc1 cwc1_Inst
 //  (
@@ -742,7 +761,7 @@ u_image_correction (
 
 
 //ISP算法顶层模块
-isp_top u_isp_top (
+isp_top #(.IMG_WIDTH(VIDEO_WIDTH), .IMG_HEIGHT(VIDEO_HEIGHT)) u_isp_top (
 .axi4s_video_aclk(S_csi_rx_clk),
 .I_rst_n         (S_rst_n),
 .I_tlast         (S_raw_tlast	),
@@ -757,23 +776,37 @@ isp_top u_isp_top (
 .O_tlast         (S_ISP_O_tlast ),
 .O_tuser         (S_ISP_O_tuser ),
 .O_tvalid        (S_ISP_O_tvalid),
+.O_original_tdata (S_ISP_ORIG_tdata),
+.O_original_tlast (S_ISP_ORIG_tlast),
+.O_original_tuser (S_ISP_ORIG_tuser),
+.O_original_tvalid(S_ISP_ORIG_tvalid),
 .O_cnn_busy      (S_cnn_busy),
 .O_cnn_done      (S_cnn_done),
 .O_cnn_result_valid(S_cnn_result_valid),
 .O_cnn_result_class(S_cnn_result_class),
 .O_cnn_result_ascii(S_cnn_result_ascii),
 .O_cnn_result_toggle(S_cnn_result_toggle),
-.O_cnn_frame_drop(S_cnn_frame_drop)
+.O_cnn_frame_drop(S_cnn_frame_drop),
+.O_traffic_sign_busy(S_traffic_sign_busy),
+.O_traffic_sign_done(S_traffic_sign_done),
+.O_traffic_sign_result_valid(S_traffic_sign_result_valid),
+.O_traffic_sign_result_class(S_traffic_sign_result_class),
+.O_traffic_sign_result_ascii(S_traffic_sign_result_ascii),
+.O_traffic_sign_result_toggle(S_traffic_sign_result_toggle),
+.O_traffic_sign_frame_drop(S_traffic_sign_frame_drop)
   );
 
 
-    video_in u_video_in(
+    video_in_dual u_video_in(
         .I_rst_n              (  S_rst_n             ),
 
         .I_camera_clk         ( S_csi_rx_clk          ),
         .I_camera_frame_start ( S_ISP_O_tuser  ),
         .I_camera_valid       ( S_ISP_O_tvalid ),
         .I_camera_data        ( S_ISP_O_tdata  ),
+        .I_original_frame_start( S_ISP_ORIG_tuser ),
+        .I_original_valid    ( S_ISP_ORIG_tvalid ),
+        .I_original_data     ( S_ISP_ORIG_tdata  ),
         .I_mipi_rx_error      ( S_mipi_rx_error_ddr ),
 
         .I_ddr_clk            ( S_ddr_clk             ),
@@ -800,6 +833,18 @@ isp_top u_isp_top (
 
     assign S_ddr_user_wr_data  = S_vi_ddr_wr_data;
 
+    // 11模式显示并保留原图，其余模式显示处理图；两份数据始终都在DDR中保存。
+    always @(posedge S_ddr_clk or negedge S_rst_n) begin
+        if(!S_rst_n) begin
+            S_display_processed_ddr1 <= 1'b0;
+            S_display_processed_ddr2 <= 1'b0;
+        end else begin
+            S_display_processed_ddr1 <= (S_algo_mode_sync_2 != 2'b11);
+            S_display_processed_ddr2 <= S_display_processed_ddr1;
+        end
+    end
+    assign S_display_processed = S_display_processed_ddr2;
+
 
     assign S_video_out_rst_n = S_hdmi_rst_n;
 
@@ -810,6 +855,7 @@ isp_top u_isp_top (
         .O_video_out_rd_busy ( S_video_out_rd_busy  ),
         .I_video_in_wr_busy  ( S_video_in_wr_busy   ),
         .I_video_out_rp      ( S_video_out_rp       ),
+        .I_display_processed ( S_display_processed   ),
  
         .O_ddr_user_rd_en    ( S_vo_ddr_rd_en       ),
         .O_ddr_user_addr     ( S_vo_ddr_rd_addr     ),
@@ -892,14 +938,14 @@ isp_top u_isp_top (
 
 
     uivtc #(
-        .H_ActiveSize ( 1024 ),
-        .H_FrameSize  ( 1344 ),
-        .H_SyncStart  ( 1184 ),
-        .H_SyncEnd    ( 1208 ),
-        .V_ActiveSize ( 600  ),
-        .V_FrameSize  ( 635  ),
-        .V_SyncStart  ( 612  ),
-        .V_SyncEnd    ( 614  )
+        .H_ActiveSize ( VIDEO_WIDTH ),
+        .H_FrameSize  ( 1650 ),
+        .H_SyncStart  ( 1390 ),
+        .H_SyncEnd    ( 1430 ),
+        .V_ActiveSize ( VIDEO_HEIGHT ),
+        .V_FrameSize  ( 750 ),
+        .V_SyncStart  ( 725 ),
+        .V_SyncEnd    ( 730 )
     )u_hdmi_vtc(
         .I_vtc_rstn    ( S_hdmi_rst_n    ),
         .I_vtc_clk     ( S_hdmi_pixel_clk ),
@@ -922,11 +968,19 @@ isp_top u_isp_top (
         .O_dst_valid  ( S_cnn_hdmi_result_valid )
     );
 
+    traffic_sign_result_cdc u_sign_hdmi_cdc (
+        .I_src_clk(S_csi_rx_clk), .I_src_rst_n(S_rst_n),
+        .I_src_toggle(S_traffic_sign_result_toggle), .I_src_ascii(S_traffic_sign_result_ascii),
+        .I_dst_clk(S_hdmi_pixel_clk), .I_dst_rst_n(S_hdmi_rst_n),
+        .O_dst_toggle(S_sign_hdmi_toggle), .O_dst_ascii(S_sign_hdmi_ascii),
+        .O_dst_valid(S_sign_hdmi_valid)
+    );
+
     hdmi_mixer #(
         .H_OFFSET   ( 0    ),
         .V_OFFSET   ( 0    ),
-        .IMG_WIDTH  ( 1024 ),
-        .IMG_HEIGHT ( 600  ),
+        .IMG_WIDTH  (VIDEO_WIDTH),
+        .IMG_HEIGHT (VIDEO_HEIGHT),
         .DEBUG_MODE ( 0    )
     )u_hdmi_mixer(
         .I_clk           ( S_hdmi_pixel_clk   ),
@@ -937,6 +991,11 @@ isp_top u_isp_top (
         .I_video_user    ( S_hdmi_user        ),
         .I_video_last    ( S_hdmi_last        ),
         .I_debug_status  ( S_hdmi_debug_status),
+        // Match the ISP mode; CSI and HDMI are asynchronous clock domains.
+        // hdmi_mixer retains its two receiving synchronizer registers.
+        .I_image_mode(S_algo_mode_sync_2),
+        .I_sign_toggle(S_sign_hdmi_toggle),
+        .I_sign_ascii(S_sign_hdmi_ascii),
         .I_cnn_mode      ( S_algo_mode_sync_2[1:0] == 2'b00 ),
         .I_cnn_busy      ( S_cnn_busy        ),
         .I_cnn_result_toggle( S_cnn_hdmi_toggle ),
@@ -978,6 +1037,51 @@ isp_top u_isp_top (
         .O_tmds_ch1_p       ( O_tmds_ch1_p      ),
         .O_tmds_ch2_p       ( O_tmds_ch2_p      ),
         .O_tmds_clk_p       ( O_tmds_clk_p      )
+    );
+
+    // STM32 C50C car-control link.  Recognition results arrive from the CSI
+    // clock domain through the CDC mailbox inside car_control.  The controller
+    // sends a checksum-protected zero-speed heartbeat until the link is valid,
+    // and independently stops on stale vision, stale feedback or stop input.
+    car_control #(
+        .CLK_HZ              (100000000),
+        .BAUD                (115200),
+        .SEND_HZ             (50),
+        .DEBOUNCE_MS         (20),
+        .RESULT_TIMEOUT_MS   (500),
+        .LINK_TIMEOUT_MS     (500),
+        .TURN_MS             (800),
+        .CONFIRM_FRAMES      (3),
+        .CLEAR_FRAMES        (3)
+    ) u_car_control (
+        .clk                  (S_100m_clk),
+        .rst_n                (S_rst_n),
+        .src_clk              (S_csi_rx_clk),
+        .src_rst_n            (S_rst_n),
+        .src_result_ascii     (S_traffic_sign_result_ascii),
+        .src_result_toggle    (S_traffic_sign_result_toggle),
+        .arm_n                (I_car_arm_n),
+        .stop_n               (I_car_stop_n),
+        .obstacle_n           (I_car_obstacle_n),
+        .slow_n               (I_car_slow_n),
+        .rx                   (I_car_rx),
+        .tx                   (O_car_tx),
+        .armed                (),
+        .state                (),
+        .command_vx           (),
+        .command_vy           (),
+        .command_wz           (),
+        .link_ok              (),
+        .result_stale         (),
+        .status_valid         (),
+        .flag_stop            (),
+        .actual_vx            (),
+        .actual_vy            (),
+        .actual_wz            (),
+        .battery_mv           (),
+        .tx_count             (),
+        .rx_count             (),
+        .rx_error_count       ()
     );
 
 

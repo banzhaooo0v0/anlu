@@ -1,0 +1,19 @@
+{
+  "width": 1920,
+  "height": 843,
+  "pixels": 1618560,
+  "groups": 404640,
+  "checked_channels": 4855680,
+  "reference_mismatches": 0,
+  "bypass_exact": true,
+  "source_sha256": "05a6b9abf2f0a36cf13e7afb4f5394501dbb2b9618d9d121a8af3c01cabdf1dd",
+  "rtl_sha256": "b6af9cd646f595279d30a1a91895be43355f6b4eedc39a7986a5f85f5efa2c81",
+  "output_sha256": "b24965fdd3077f42267d126f41453853992085036a3939a0f68d7c019f166227",
+  "parameters": {
+    "ATMOSPHERIC_LIGHT": 240,
+    "OMEGA_Q8": 218,
+    "MIN_TRANSMISSION": 64
+  },
+  "mean_rgb_before": 179.0940272011335,
+  "mean_rgb_after": 135.28667230954264
+}

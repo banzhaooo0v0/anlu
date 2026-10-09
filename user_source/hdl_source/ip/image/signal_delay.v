@@ -117,13 +117,24 @@ module signal_delay #(
     assign O_valid = rd_valid_d;
     assign O_tuser = (v_cnt == 0) && (rd_cnt == 1);
 
-    blk_mem_gen_awb_delay_signal blk_mem_gen_awb_delay_signal_d (
+    // The pointers wrap at IMG_WIDTH/4, so the old fixed 2048-word RAM
+    // wasted most of its capacity for the 1024-pixel contest image.
+    // Keep the same vendor RAM and read latency; size only the storage.
+    localparam DELAY_ADDR_WIDTH = (IMG_WIDTH_4x <= 1) ? 1 : $clog2(IMG_WIDTH_4x);
+    ram_f84573da5ab5 #(
+      .DATA_WIDTH_A(DATA_WIDTH), .DATA_WIDTH_B(DATA_WIDTH),
+      .ADDR_WIDTH_A(DELAY_ADDR_WIDTH), .ADDR_WIDTH_B(DELAY_ADDR_WIDTH),
+      .DATA_DEPTH_A(IMG_WIDTH_4x), .DATA_DEPTH_B(IMG_WIDTH_4x),
+      .REGMODE_A("NOREG"), .REGMODE_B("NOREG"),
+      .WRITEMODE_A("NORMAL"), .WRITEMODE_B("READBEFOREWRITE")
+    ) blk_mem_gen_awb_delay_signal_d (
       .clka (I_clk   ),  // input wire clka
       .wea  (I_valid_r),  // input wire [0 : 0] wea
-      .addra(addra   ),  // input wire [10 : 0] addra
+      .addra(addra[DELAY_ADDR_WIDTH-1:0]),
       .dia  (I_data_r ),  // input wire [95 : 0] dina
       .clkb (I_clk   ),  // input wire clkb
-      .addrb(addrb   ),  // input wire [10 : 0] addrb
+      .addrb(addrb[DELAY_ADDR_WIDTH-1:0]),
+      .dib({DATA_WIDTH{1'b0}}), .web(1'b0), .doa(),
       .dob  (O_data  )   // output wire [95 : 0] doutb
     );
 

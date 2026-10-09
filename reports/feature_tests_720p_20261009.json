@@ -1,0 +1,142 @@
+{
+  "simulator": "XSim 2019.2",
+  "tests": [
+    {
+      "test": "tb_demosaic_ram_resize",
+      "status": "PASS",
+      "log": "tb_demosaic_ram_resize_20261009.log",
+      "sha256": "318fe19075f34ed3b72e77fb53801527361c71f4fba3d52b1c0c80e80b3af032",
+      "result_lines": [
+        "PASS demosaic RAM depth/address equivalence: 10280 valid cycles"
+      ]
+    },
+    {
+      "test": "tb_native_720p",
+      "status": "PASS",
+      "log": "tb_native_720p_20261009.log",
+      "sha256": "08031a7f34a78bdaad65b53e18491d8fbedfb16a9dc26aa446bf0208621a594b",
+      "result_lines": [
+        "PASS native 720p: 2 frames, 1440 lines, 460800 four-pixel groups, end-marker gaps"
+      ]
+    },
+    {
+      "test": "tb_cnn_handshake_720p",
+      "status": "PASS",
+      "log": "tb_cnn_handshake_720p_20261009.log",
+      "sha256": "c5378243ebc4714b936dd347493e33c3665a2f8afef0b0bb057b910d3d55b0ab",
+      "result_lines": [
+        "[RESULT] CNN INPUT SAMPLER DOUBLE BUFFER TEST PASSED"
+      ]
+    },
+    {
+      "test": "tb_hdmi_720p",
+      "status": "PASS",
+      "log": "tb_hdmi_720p_20261009.log",
+      "sha256": "d1c0983af947a85e54e408644bff27a5a1e77d9f3e8123dc29673d0ed240bed9",
+      "result_lines": [
+        "PASS OSD final output pixels: 12288",
+        "PASS HDMI 1280x720: 921600 pixels, 720 lines, 1237500 clocks/frame; two frames checked"
+      ]
+    },
+    {
+      "test": "tb_cnn_sampler_720p",
+      "status": "PASS",
+      "log": "tb_cnn_sampler_720p_20261009.log",
+      "sha256": "ec14b7d46d8386d7333f8b1f1c283ae921d06c6d1d2472e2d303e18148fc83e8",
+      "result_lines": [
+        "[RESULT] CNN INPUT SAMPLER TEST PASSED"
+      ]
+    },
+    {
+      "test": "tb_sc500_auto_exposure",
+      "status": "PASS",
+      "log": "tb_sc500_auto_exposure_20261009.log",
+      "sha256": "b76390b855fca306bbc5bd453a33ecd81febbbe90c7a2e66141bb830b8407f76",
+      "result_lines": [
+        "BRIGHT_OK ae=1990 ag=100 req=7"
+      ]
+    },
+    {
+      "test": "tb_sc500_gain_table",
+      "status": "PASS",
+      "log": "tb_sc500_gain_table_20261009.log",
+      "sha256": "20c298b4439101cc38f00ffbf2e093054c47158109a71f323077af309a556340",
+      "result_lines": [
+        "GAIN_TABLE_OK"
+      ]
+    },
+    {
+      "test": "tb_pixel_morphology",
+      "status": "PASS",
+      "log": "tb_pixel_morphology_20261009.log",
+      "sha256": "7c61d3e912ef385d6512bb5b53137f8b1c429677a82ce285e0f99899d8597c55",
+      "result_lines": [
+        "PASS pixel morphology: 122880 pixels, 8 frames, borders/bubbles/frame config/lane boundaries"
+      ]
+    },
+    {
+      "test": "tb_board_mode_selector",
+      "status": "PASS",
+      "log": "tb_board_mode_selector_20261009.log",
+      "sha256": "93746e5bc62590a8c7dd47356df30637b81faf93d3cdbfe94e19da87349c41c2",
+      "result_lines": [
+        "PASS BOARD KEY4 MODE SELECTOR"
+      ]
+    },
+    {
+      "test": "tb_osd_question",
+      "status": "PASS",
+      "log": "tb_osd_question_20261009.log",
+      "sha256": "8bd53677e7b99ab9d00afac7f31f3efc5ce86e1376408dccc8f903106fe9a77a",
+      "result_lines": [
+        "PASS OSD QUESTION GLYPH"
+      ]
+    },
+    {
+      "test": "tb_car_uart",
+      "status": "PASS",
+      "log": "tb_car_uart_20261009.log",
+      "sha256": "63263b9dd62ca22ce58841e589700a9a97a005b0107c62f23395862c9015b2ac",
+      "result_lines": [
+        "ALL CAR UART TESTS PASSED"
+      ]
+    },
+    {
+      "test": "tb_car_decision",
+      "status": "PASS",
+      "log": "tb_car_decision_20261009.log",
+      "sha256": "722f883eeabd3f7a9875003515fdc596c55adf9f0106e4f4bdb4c458d7905c0f",
+      "result_lines": [
+        "PASS tb_car_decision (8032 checks)"
+      ]
+    },
+    {
+      "test": "tb_car_result_cdc",
+      "status": "PASS",
+      "log": "tb_car_result_cdc_20261009.log",
+      "sha256": "b02f4cf9d278aa04a425a7600a2d6a1fd1c3d4fd8068c44bcbc3b2eb3c72d52f",
+      "result_lines": [
+        "PASS tb_car_result_cdc (11 checks)"
+      ]
+    },
+    {
+      "test": "tb_car_control",
+      "status": "PASS",
+      "log": "tb_car_control_20261009.log",
+      "sha256": "64d4c6645886d8ccfac68798a6543ef6ab4d99ec93fbb326f43ae2f296c62a1f",
+      "result_lines": [
+        "PASS tb_car_control (23 checks; 66 complete UART packets)"
+      ]
+    },
+    {
+      "test": "tb_traffic_sign_detector_96",
+      "status": "PASS",
+      "log": "tb_traffic_sign_detector_96_20261009.log",
+      "sha256": "2a805c052bb88b8c06d736d7a424aa51abced51aff8b9f6c5d726ec266af9512",
+      "result_lines": [
+        "PASS traffic sign detector"
+      ]
+    }
+  ],
+  "total_passed": 15
+}

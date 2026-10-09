@@ -164,14 +164,23 @@ module zhenghe#(
             addrb <= (addrb == IMG_WIDTH_4x -1) ? 'b0 : addrb + 1'b1;
         end
     end
-    blk_mem_gen_zhenghe blk_mem_gen_zhenghe_d1 (
+    // One row is IMG_WIDTH/4 words; preserve vendor RAM mode/latency.
+    localparam LINE_ADDR_BITS = $clog2(IMG_WIDTH_4x);
+    ram_d32970204f32 #(
+        .DATA_WIDTH_A(32), .DATA_WIDTH_B(32),
+        .ADDR_WIDTH_A(LINE_ADDR_BITS), .ADDR_WIDTH_B(LINE_ADDR_BITS),
+        .DATA_DEPTH_A(IMG_WIDTH_4x), .DATA_DEPTH_B(IMG_WIDTH_4x),
+        .REGMODE_A("NOREG"), .REGMODE_B("NOREG"),
+        .WRITEMODE_A("NORMAL"), .WRITEMODE_B("READBEFOREWRITE")
+    ) blk_mem_gen_zhenghe_sized (
       .clka (I_clk   ),  // input wire clka
       .wea  (valid_r0),  // input wire [0 : 0] wea
-      .addra(addra   ),  // input wire [10 : 0] addra
+      .addra(addra[LINE_ADDR_BITS-1:0]),  // input wire [10 : 0] addra
       .dia (data_d0 ),  // input wire [95 : 0] dina
       .clkb (I_clk   ),  // input wire clkb
-      .addrb(addrb   ),  // input wire [10 : 0] addrb
-      .dob(data_d  )   // output wire [95 : 0] doutb
+      .addrb(addrb[LINE_ADDR_BITS-1:0]),  // input wire [10 : 0] addrb
+      .dib(32'd0), .web(1'b0), .doa(),
+        .dob(data_d  )   // output wire [95 : 0] doutb
     );
     wire   O_tuser_d,O_tvalid_d,O_tlast_d;
     assign O_tuser_d  = (x_cnt == rd_valid_width_d0 + 1) && (y_cnt == 0);

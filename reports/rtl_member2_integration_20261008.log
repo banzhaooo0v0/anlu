@@ -1,0 +1,21 @@
+#-----------------------------------------------------------
+# xsim v2019.2 (64-bit)
+# SW Build 2708876 on Wed Nov  6 21:40:23 MST 2019
+# IP Build 2700528 on Thu Nov  7 00:09:20 MST 2019
+# Start of session at: Thu Oct  8 21:36:04 2026
+# Process ID: 27412
+# Current directory: E:/FPGA/workspace/anlu/sim/build_dual
+# Command line: xsim.exe -mode tcl -source {xsim.dir/member2_test/xsim_script.tcl}
+# Log file: E:/FPGA/workspace/anlu/sim/build_dual/xsim.log
+# Journal file: E:/FPGA/workspace/anlu/sim/build_dual\xsim.jou
+#-----------------------------------------------------------
+source xsim.dir/member2_test/xsim_script.tcl
+# xsim {member2_test} -autoloadwcfg -runall
+Vivado Simulator 2019.2
+Time resolution is 1 ps
+run -all
+PASS: integrated member2 path, two 1024x600 frames, 460800 DDR words, dehaze/bypass and actual clock ratio
+$finish called at time : 13655007696 ps : File "E:/FPGA/workspace/anlu/sim/tb_member2_integration.sv" Line 76
+run: Time (s): cpu = 00:00:00 ; elapsed = 00:00:34 . Memory (MB): peak = 240.645 ; gain = 0.000
+exit
+INFO: [Common 17-206] Exiting xsim at Thu Oct  8 21:36:40 2026...

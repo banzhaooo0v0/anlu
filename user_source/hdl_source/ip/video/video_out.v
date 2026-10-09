@@ -8,6 +8,7 @@ module video_out (
     output wire       O_video_out_rd_busy,  
     input wire        I_video_in_wr_busy,   
     input wire[1:0]   I_video_out_rp,
+    input wire        I_display_processed,
     output wire       O_ddr_user_rd_en,
     output reg[24:0]  O_ddr_user_addr,
     input wire        I_ddr_user_ready,
@@ -46,6 +47,7 @@ module video_out (
     localparam IMAGE_BASE_ADDR_1 = 25'd7000000;
     localparam IMAGE_BASE_ADDR_2 = 25'd14000000;
     localparam IMAGE_BASE_ADDR_3 = 25'd21000000;
+    localparam PROC_OFFSET = 25'd3500000;
 
 
     always @(posedge I_ddr_clk) begin
@@ -124,10 +126,10 @@ module video_out (
             if(S_video_frame_start)
                 begin
                     case(I_video_out_rp)
-                        'd0: O_ddr_user_addr <= IMAGE_BASE_ADDR_0;
-                        'd1: O_ddr_user_addr <= IMAGE_BASE_ADDR_1;
-                        'd2: O_ddr_user_addr <= IMAGE_BASE_ADDR_2;
-                        'd3: O_ddr_user_addr <= IMAGE_BASE_ADDR_3;
+                        'd0: O_ddr_user_addr <= IMAGE_BASE_ADDR_0 + (I_display_processed ? PROC_OFFSET : 25'd0);
+                        'd1: O_ddr_user_addr <= IMAGE_BASE_ADDR_1 + (I_display_processed ? PROC_OFFSET : 25'd0);
+                        'd2: O_ddr_user_addr <= IMAGE_BASE_ADDR_2 + (I_display_processed ? PROC_OFFSET : 25'd0);
+                        'd3: O_ddr_user_addr <= IMAGE_BASE_ADDR_3 + (I_display_processed ? PROC_OFFSET : 25'd0);
                     endcase
                 end
             else if(O_ddr_user_rd_en)

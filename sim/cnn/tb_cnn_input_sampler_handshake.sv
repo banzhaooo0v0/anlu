@@ -35,7 +35,7 @@ module tb_cnn_input_sampler_handshake;
     reg frame0_finished;
     reg frame1_finished;
 
-    cnn_input_sampler_96 dut (
+    cnn_input_sampler_96 #(.IMG_WIDTH(1024),.IMG_HEIGHT(600)) dut (
         .I_clk                    (clk),
         .I_rst_n                   (rst_n),
         .I_tuser                   (tuser),

@@ -43,6 +43,7 @@ module osd_char_lib (
     localparam CHAR_8     = 8'h38;
     localparam CHAR_9     = 8'h39;
     localparam CHAR_COLON = 8'h3a;
+    localparam CHAR_QUESTION = 8'h3f;
 
     always @(*) begin
         case(I_char)
@@ -858,6 +859,27 @@ module osd_char_lib (
                     4'd9: O_row_bits = 16'h0000;
                     4'd10: O_row_bits = 16'h0180;
                     4'd11: O_row_bits = 16'h0180;
+                    4'd12: O_row_bits = 16'h0000;
+                    4'd13: O_row_bits = 16'h0000;
+                    4'd14: O_row_bits = 16'h0000;
+                    4'd15: O_row_bits = 16'h0000;
+                    default: O_row_bits = 16'h0000;
+                endcase
+            end
+            CHAR_QUESTION: begin
+                case(I_row)
+                    4'd0: O_row_bits = 16'h0000;
+                    4'd1: O_row_bits = 16'h0000;
+                    4'd2: O_row_bits = 16'h0f00;
+                    4'd3: O_row_bits = 16'h1180;
+                    4'd4: O_row_bits = 16'h0180;
+                    4'd5: O_row_bits = 16'h0300;
+                    4'd6: O_row_bits = 16'h0600;
+                    4'd7: O_row_bits = 16'h0600;
+                    4'd8: O_row_bits = 16'h0000;
+                    4'd9: O_row_bits = 16'h0600;
+                    4'd10: O_row_bits = 16'h0600;
+                    4'd11: O_row_bits = 16'h0000;
                     4'd12: O_row_bits = 16'h0000;
                     4'd13: O_row_bits = 16'h0000;
                     4'd14: O_row_bits = 16'h0000;

@@ -17,3 +17,12 @@ set_pin_assignment	{ O_tmds_ch2_p }		{ LOCATION = H14; IOSTANDARD = TMDS33; PULL
 set_pin_assignment	{ O_tmds_clk_p }		{ LOCATION = C17; IOSTANDARD = TMDS33; PULLTYPE = NONE; }
 
 
+
+# STM32 C50C control link and four active-low control buttons. Confirm the
+# HX1P35A board revision before wiring; assignments follow teammate pin evidence.
+set_pin_assignment { O_car_tx }         { LOCATION = C18; IOSTANDARD = LVCMOS33; DRIVESTRENGTH = 8; PULLTYPE = PULLUP; }
+set_pin_assignment { I_car_rx }         { LOCATION = D15; IOSTANDARD = LVCMOS33; PULLTYPE = PULLUP; }
+set_pin_assignment { I_car_arm_n }      { LOCATION = D5;  IOSTANDARD = LVCMOS33; PULLTYPE = PULLUP; }
+set_pin_assignment { I_car_stop_n }     { LOCATION = A9;  IOSTANDARD = LVCMOS33; PULLTYPE = PULLUP; }
+set_pin_assignment { I_car_obstacle_n } { LOCATION = B9;  IOSTANDARD = LVCMOS33; PULLTYPE = PULLUP; }
+set_pin_assignment { I_car_slow_n }     { LOCATION = C7;  IOSTANDARD = LVCMOS33; PULLTYPE = PULLUP; }

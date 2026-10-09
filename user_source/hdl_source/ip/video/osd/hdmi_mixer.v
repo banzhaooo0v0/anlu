@@ -1,8 +1,8 @@
 module hdmi_mixer #(
     parameter H_OFFSET = 128,
     parameter V_OFFSET = 60,
-    parameter IMG_WIDTH = 1024,
-    parameter IMG_HEIGHT = 600,
+    parameter IMG_WIDTH = 1280,
+    parameter IMG_HEIGHT = 720,
     parameter integer DEBUG_MODE = 0
 )(
     input wire        I_clk,
@@ -15,6 +15,9 @@ module hdmi_mixer #(
     input wire        I_video_last,
 
     input wire[3:0]   I_debug_status,
+    input wire [1:0]  I_image_mode,
+    input wire        I_sign_toggle,
+    input wire [7:0]  I_sign_ascii,
 
     // CNN状态来自摄像头时钟域，结果toggle和ASCII由顶层CDC模块提供。
     input wire        I_cnn_mode,
@@ -100,6 +103,12 @@ module hdmi_mixer #(
     reg [3:0]  S_pf_row;
     wire [15:0] S_pf_row_bits;
     reg        S_pf_on;
+    reg [7:0] glyph_char_q;
+    reg [3:0] glyph_row_q, glyph_col_q;
+    reg glyph_region_q, logo_hit_q;
+    reg [14:0] logo_addr_q;
+    reg S_video_de_3d, S_video_hsync_3d, S_video_vsync_3d;
+    reg [23:0] S_video_data_3d;
     reg [9:0]  S_pf_scale_x;
     reg [9:0]  S_pf_scale_y;
     reg        S_cnn_mode_sync1;
@@ -109,6 +118,19 @@ module hdmi_mixer #(
     reg        S_cnn_toggle_sync2;
     reg        S_cnn_toggle_seen;
     reg        S_cnn_result_ready;
+
+    reg [1:0] mode_sync1, mode_sync2, S_image_mode_frame;
+    reg sign_seen, sign_ready;
+    always @(posedge I_clk or negedge I_rst_n) begin
+        if (!I_rst_n) begin
+            mode_sync1<=3; mode_sync2<=3; S_image_mode_frame<=3;
+            sign_seen<=0; sign_ready<=0;
+        end else begin
+            mode_sync1<=I_image_mode; mode_sync2<=mode_sync1;
+            if (I_video_user) S_image_mode_frame<=mode_sync2;
+            if (I_sign_toggle != sign_seen) begin sign_seen<=I_sign_toggle; sign_ready<=1; end
+        end
+    end
 
     localparam LOGO_X = 12'd0;
     localparam LOGO_Y = 12'd0;
@@ -483,13 +505,13 @@ module hdmi_mixer #(
     assign O_video_rd_en = I_video_de;
 
     anlogic_logo_rom u_anlogic_logo_rom(
-        .I_addr  ( S_logo_addr  ),
+        .I_addr  ( logo_addr_q ),
         .O_pixel ( S_logo_pixel )
     );
 
     osd_char_lib u_osd_char_lib(
-        .I_char     ( S_pf_char     ),
-        .I_row      ( S_pf_row      ),
+        .I_char     ( glyph_char_q  ),
+        .I_row      ( glyph_row_q   ),
         .O_row_bits ( S_pf_row_bits )
     );
 
@@ -652,11 +674,9 @@ module hdmi_mixer #(
                (S_y_2d >= LOGO_Y) && (S_y_2d < (LOGO_Y + LOGO_H))) begin
                 S_logo_x = S_x_2d - LOGO_X;
                 S_logo_y = S_y_2d - LOGO_Y;
-                S_logo_addr = S_logo_y * LOGO_W + S_logo_x;
-                if(S_logo_pixel[24]) begin
-                    S_osd_hit   = 1'b1;
-                    S_osd_color = S_logo_pixel[23:0];
-                end
+                S_logo_addr = ({7'd0,S_logo_y[7:0]} << 7) +
+                              ({7'd0,S_logo_y[7:0]} << 5) + {7'd0,S_logo_x[7:0]};
+                S_osd_hit = 1'b1; // Region only; ROM color follows registered address.
             end
 
             if((S_x_2d >= DYN_OSD_X) && (S_x_2d < (DYN_OSD_X + DYN_OSD_W)) &&
@@ -688,22 +708,22 @@ module hdmi_mixer #(
                             S_pf_col = S_pf_scale_x / 10'd24;
                             S_pf_row = S_pf_scale_y / 10'd24;
                             case(S_pf_col)
-                                4'd0:  S_pf_on = S_pf_row_bits[15];
-                                4'd1:  S_pf_on = S_pf_row_bits[14];
-                                4'd2:  S_pf_on = S_pf_row_bits[13];
-                                4'd3:  S_pf_on = S_pf_row_bits[12];
-                                4'd4:  S_pf_on = S_pf_row_bits[11];
-                                4'd5:  S_pf_on = S_pf_row_bits[10];
-                                4'd6:  S_pf_on = S_pf_row_bits[9];
-                                4'd7:  S_pf_on = S_pf_row_bits[8];
-                                4'd8:  S_pf_on = S_pf_row_bits[7];
-                                4'd9:  S_pf_on = S_pf_row_bits[6];
-                                4'd10: S_pf_on = S_pf_row_bits[5];
-                                4'd11: S_pf_on = S_pf_row_bits[4];
-                                4'd12: S_pf_on = S_pf_row_bits[3];
-                                4'd13: S_pf_on = S_pf_row_bits[2];
-                                4'd14: S_pf_on = S_pf_row_bits[1];
-                                4'd15: S_pf_on = S_pf_row_bits[0];
+                                4'd0:  S_pf_on = 1'b1;
+                                4'd1:  S_pf_on = 1'b1;
+                                4'd2:  S_pf_on = 1'b1;
+                                4'd3:  S_pf_on = 1'b1;
+                                4'd4:  S_pf_on = 1'b1;
+                                4'd5:  S_pf_on = 1'b1;
+                                4'd6:  S_pf_on = 1'b1;
+                                4'd7:  S_pf_on = 1'b1;
+                                4'd8:  S_pf_on = 1'b1;
+                                4'd9:  S_pf_on = 1'b1;
+                                4'd10: S_pf_on = 1'b1;
+                                4'd11: S_pf_on = 1'b1;
+                                4'd12: S_pf_on = 1'b1;
+                                4'd13: S_pf_on = 1'b1;
+                                4'd14: S_pf_on = 1'b1;
+                                4'd15: S_pf_on = 1'b1;
                                 default: S_pf_on = 1'b0;
                             endcase
                         end
@@ -725,22 +745,22 @@ module hdmi_mixer #(
                         S_pf_col = S_pf_local_x[3:0];
                         S_pf_row = S_pf_local_y[3:0];
                         case(S_pf_col)
-                            4'd0:  S_pf_on = S_pf_row_bits[15];
-                            4'd1:  S_pf_on = S_pf_row_bits[14];
-                            4'd2:  S_pf_on = S_pf_row_bits[13];
-                            4'd3:  S_pf_on = S_pf_row_bits[12];
-                            4'd4:  S_pf_on = S_pf_row_bits[11];
-                            4'd5:  S_pf_on = S_pf_row_bits[10];
-                            4'd6:  S_pf_on = S_pf_row_bits[9];
-                            4'd7:  S_pf_on = S_pf_row_bits[8];
-                            4'd8:  S_pf_on = S_pf_row_bits[7];
-                            4'd9:  S_pf_on = S_pf_row_bits[6];
-                            4'd10: S_pf_on = S_pf_row_bits[5];
-                            4'd11: S_pf_on = S_pf_row_bits[4];
-                            4'd12: S_pf_on = S_pf_row_bits[3];
-                            4'd13: S_pf_on = S_pf_row_bits[2];
-                            4'd14: S_pf_on = S_pf_row_bits[1];
-                            4'd15: S_pf_on = S_pf_row_bits[0];
+                            4'd0:  S_pf_on = 1'b1;
+                            4'd1:  S_pf_on = 1'b1;
+                            4'd2:  S_pf_on = 1'b1;
+                            4'd3:  S_pf_on = 1'b1;
+                            4'd4:  S_pf_on = 1'b1;
+                            4'd5:  S_pf_on = 1'b1;
+                            4'd6:  S_pf_on = 1'b1;
+                            4'd7:  S_pf_on = 1'b1;
+                            4'd8:  S_pf_on = 1'b1;
+                            4'd9:  S_pf_on = 1'b1;
+                            4'd10: S_pf_on = 1'b1;
+                            4'd11: S_pf_on = 1'b1;
+                            4'd12: S_pf_on = 1'b1;
+                            4'd13: S_pf_on = 1'b1;
+                            4'd14: S_pf_on = 1'b1;
+                            4'd15: S_pf_on = 1'b1;
                             default: S_pf_on = 1'b0;
                         endcase
                     end
@@ -752,22 +772,22 @@ module hdmi_mixer #(
                         S_pf_col = S_pf_scale_x / 10'd8;
                         S_pf_row = S_pf_local_y[3:0];
                         case(S_pf_col)
-                            4'd0:  S_pf_on = S_pf_row_bits[15];
-                            4'd1:  S_pf_on = S_pf_row_bits[14];
-                            4'd2:  S_pf_on = S_pf_row_bits[13];
-                            4'd3:  S_pf_on = S_pf_row_bits[12];
-                            4'd4:  S_pf_on = S_pf_row_bits[11];
-                            4'd5:  S_pf_on = S_pf_row_bits[10];
-                            4'd6:  S_pf_on = S_pf_row_bits[9];
-                            4'd7:  S_pf_on = S_pf_row_bits[8];
-                            4'd8:  S_pf_on = S_pf_row_bits[7];
-                            4'd9:  S_pf_on = S_pf_row_bits[6];
-                            4'd10: S_pf_on = S_pf_row_bits[5];
-                            4'd11: S_pf_on = S_pf_row_bits[4];
-                            4'd12: S_pf_on = S_pf_row_bits[3];
-                            4'd13: S_pf_on = S_pf_row_bits[2];
-                            4'd14: S_pf_on = S_pf_row_bits[1];
-                            4'd15: S_pf_on = S_pf_row_bits[0];
+                            4'd0:  S_pf_on = 1'b1;
+                            4'd1:  S_pf_on = 1'b1;
+                            4'd2:  S_pf_on = 1'b1;
+                            4'd3:  S_pf_on = 1'b1;
+                            4'd4:  S_pf_on = 1'b1;
+                            4'd5:  S_pf_on = 1'b1;
+                            4'd6:  S_pf_on = 1'b1;
+                            4'd7:  S_pf_on = 1'b1;
+                            4'd8:  S_pf_on = 1'b1;
+                            4'd9:  S_pf_on = 1'b1;
+                            4'd10: S_pf_on = 1'b1;
+                            4'd11: S_pf_on = 1'b1;
+                            4'd12: S_pf_on = 1'b1;
+                            4'd13: S_pf_on = 1'b1;
+                            4'd14: S_pf_on = 1'b1;
+                            4'd15: S_pf_on = 1'b1;
                             default: S_pf_on = 1'b0;
                         endcase
                     end
@@ -818,22 +838,22 @@ module hdmi_mixer #(
                         S_pf_col = S_pf_scale_x / 10'd15;
                         S_pf_row = S_pf_scale_y / 10'd24;
                         case(S_pf_col)
-                            4'd0:  S_pf_on = S_pf_row_bits[15];
-                            4'd1:  S_pf_on = S_pf_row_bits[14];
-                            4'd2:  S_pf_on = S_pf_row_bits[13];
-                            4'd3:  S_pf_on = S_pf_row_bits[12];
-                            4'd4:  S_pf_on = S_pf_row_bits[11];
-                            4'd5:  S_pf_on = S_pf_row_bits[10];
-                            4'd6:  S_pf_on = S_pf_row_bits[9];
-                            4'd7:  S_pf_on = S_pf_row_bits[8];
-                            4'd8:  S_pf_on = S_pf_row_bits[7];
-                            4'd9:  S_pf_on = S_pf_row_bits[6];
-                            4'd10: S_pf_on = S_pf_row_bits[5];
-                            4'd11: S_pf_on = S_pf_row_bits[4];
-                            4'd12: S_pf_on = S_pf_row_bits[3];
-                            4'd13: S_pf_on = S_pf_row_bits[2];
-                            4'd14: S_pf_on = S_pf_row_bits[1];
-                            4'd15: S_pf_on = S_pf_row_bits[0];
+                            4'd0:  S_pf_on = 1'b1;
+                            4'd1:  S_pf_on = 1'b1;
+                            4'd2:  S_pf_on = 1'b1;
+                            4'd3:  S_pf_on = 1'b1;
+                            4'd4:  S_pf_on = 1'b1;
+                            4'd5:  S_pf_on = 1'b1;
+                            4'd6:  S_pf_on = 1'b1;
+                            4'd7:  S_pf_on = 1'b1;
+                            4'd8:  S_pf_on = 1'b1;
+                            4'd9:  S_pf_on = 1'b1;
+                            4'd10: S_pf_on = 1'b1;
+                            4'd11: S_pf_on = 1'b1;
+                            4'd12: S_pf_on = 1'b1;
+                            4'd13: S_pf_on = 1'b1;
+                            4'd14: S_pf_on = 1'b1;
+                            4'd15: S_pf_on = 1'b1;
                             default: S_pf_on = 1'b0;
                         endcase
                     end
@@ -841,10 +861,7 @@ module hdmi_mixer #(
 
                 // 动态OSD只使用当前字符像素作为命中条件，避免在同一组合块内
                 // 读回自赋值的中间信号，防止综合器推断组合反馈环。
-                if(S_pf_on) begin
-                    S_osd_hit = 1'b1;
-                    S_osd_color = COLOR_DYN_TEXT;
-                end
+                // Text pixels are resolved after the registered glyph address.
             end
 
             // CNN模式显示CNN:<字母>；结果尚未完成时显示CNN:WAIT。
@@ -881,14 +898,108 @@ module hdmi_mixer #(
 
                     if(S_dyn_x < 12'd128) begin
                         S_pf_col = S_dyn_x[3:0];
-                        S_pf_on = S_pf_row_bits[15 - S_pf_col];
-                        if(S_pf_on) begin
-                            S_osd_hit = 1'b1;
-                            S_osd_color = COLOR_DYN_TEXT;
-                        end
+                        S_pf_on = 1'b1;
+                        // Text pixels are resolved after the registered glyph address.
                     end
                 end
             end
+            // 每种画面都显示当前模式；在帧首锁存，避免一帧中途更换文字。
+            if((S_x_2d >= 12'd375) && (S_x_2d < 12'd503) &&
+               (S_y_2d >= 12'd180) && (S_y_2d < 12'd204)) begin
+                S_dyn_x = S_x_2d - 12'd375;
+                S_dyn_y = S_y_2d - 12'd180;
+                if((S_dyn_y >= 12'd4) && (S_dyn_y < 12'd20)) begin
+                    S_pf_local_y = S_dyn_y - 12'd4;
+                    S_pf_row = S_pf_local_y[3:0];
+                    if(S_dyn_x < 12'd16) S_pf_char = 8'h4d; // M
+                    else if(S_dyn_x < 12'd32) S_pf_char = 8'h4f; // O
+                    else if(S_dyn_x < 12'd48) S_pf_char = 8'h44; // D
+                    else if(S_dyn_x < 12'd64) S_pf_char = 8'h45; // E
+                    else if(S_dyn_x < 12'd80) S_pf_char = CHAR_COLON;
+                    else begin
+                        case(S_image_mode_frame)
+                            2'b11: begin // RAW
+                                if(S_dyn_x < 12'd96) S_pf_char = 8'h52;
+                                else if(S_dyn_x < 12'd112) S_pf_char = 8'h41;
+                                else S_pf_char = 8'h57;
+                            end
+                            2'b10: begin // ERO
+                                if(S_dyn_x < 12'd96) S_pf_char = 8'h45;
+                                else if(S_dyn_x < 12'd112) S_pf_char = 8'h52;
+                                else S_pf_char = 8'h4f;
+                            end
+                            2'b01: begin // DIL
+                                if(S_dyn_x < 12'd96) S_pf_char = 8'h44;
+                                else if(S_dyn_x < 12'd112) S_pf_char = 8'h49;
+                                else S_pf_char = 8'h4c;
+                            end
+                            default: begin // HAZ (dehaze + CNN)
+                                if(S_dyn_x < 12'd96) S_pf_char = 8'h48;
+                                else if(S_dyn_x < 12'd112) S_pf_char = 8'h41;
+                                else S_pf_char = 8'h5a;
+                            end
+                        endcase
+                    end
+                    S_pf_col = S_dyn_x[3:0];
+                    S_pf_on = 1'b1;
+                    // Text pixels are resolved after the registered glyph address.
+                end
+            end
+            // Direction detector runs in every display mode.
+            if(
+               (S_x_2d >= 12'd375) && (S_x_2d < 12'd503) &&
+               (S_y_2d >= 12'd210) && (S_y_2d < 12'd234)) begin
+                S_dyn_x = S_x_2d - 12'd375;
+                S_dyn_y = S_y_2d - 12'd210;
+                if((S_dyn_y >= 12'd4) && (S_dyn_y < 12'd20)) begin
+                    S_pf_local_y = S_dyn_y - 12'd4;
+                    S_pf_row = S_pf_local_y[3:0];
+                    S_pf_local_x = S_dyn_x[4:0];
+                    if(S_dyn_x < 12'd16)
+                        S_pf_char = 8'h44;
+                    else if(S_dyn_x < 12'd32)
+                        S_pf_char = 8'h49;
+                    else if(S_dyn_x < 12'd48)
+                        S_pf_char = 8'h52;
+                    else if(S_dyn_x < 12'd64)
+                        S_pf_char = CHAR_COLON;
+                    // ASCII已由前级CDC模块稳定保持，HDMI域同步toggle后直接读取。
+                    else if(sign_ready && (S_dyn_x < 12'd80))
+                        S_pf_char = I_sign_ascii;
+                    else if(!sign_ready && (S_dyn_x < 12'd80))
+                        S_pf_char = 8'h57;
+                    else if(!sign_ready && (S_dyn_x < 12'd96))
+                        S_pf_char = 8'h41;
+                    else if(!sign_ready && (S_dyn_x < 12'd112))
+                        S_pf_char = 8'h49;
+                    else if(!sign_ready && (S_dyn_x < 12'd128))
+                        S_pf_char = 8'h54;
+                    else
+                        S_pf_char = 8'd0;
+
+                    if(S_dyn_x < 12'd128) begin
+                        S_pf_col = S_dyn_x[3:0];
+                        S_pf_on = 1'b1;
+                        // Text pixels are resolved after the registered glyph address.
+                    end
+                end
+            end
+        end
+    end
+
+    // Glyph selection and glyph rendering are separate clock stages.
+    always @(posedge I_clk or negedge I_rst_n) begin
+        if (!I_rst_n) begin
+            glyph_char_q<=0; glyph_row_q<=0; glyph_col_q<=0;
+            glyph_region_q<=0; logo_hit_q<=0; logo_addr_q<=0;
+            S_video_de_3d<=0; S_video_hsync_3d<=0; S_video_vsync_3d<=0;
+            S_video_data_3d<=0;
+        end else begin
+            glyph_char_q<=S_pf_char; glyph_row_q<=S_pf_row; glyph_col_q<=S_pf_col;
+            glyph_region_q<=S_pf_on; logo_hit_q<=S_osd_hit; logo_addr_q<=S_logo_addr;
+            S_video_de_3d<=S_video_de_2d;
+            S_video_hsync_3d<=S_video_hsync_2d; S_video_vsync_3d<=S_video_vsync_2d;
+            S_video_data_3d<=S_video_data_2d;
         end
     end
 
@@ -908,20 +1019,20 @@ module hdmi_mixer #(
         else begin
             S_video_vsync_1d <= I_video_vsync;
             S_video_vsync_2d <= S_video_vsync_1d;
-            O_hdmi_vsync     <= S_video_vsync_2d;
+            O_hdmi_vsync     <= S_video_vsync_3d;
 
             S_video_hsync_1d <= I_video_hsync;
             S_video_hsync_2d <= S_video_hsync_1d;
-            O_hdmi_hsync     <= S_video_hsync_2d;
+            O_hdmi_hsync     <= S_video_hsync_3d;
 
             S_video_de_1d    <= I_video_de;
             S_video_de_2d    <= S_video_de_1d;
-            O_hdmi_de        <= S_video_de_2d;
+            O_hdmi_de        <= S_video_de_3d;
             S_video_data_1d  <= I_video_rd_data;
             S_video_data_2d  <= S_video_data_1d;
 
             if(DEBUG_MODE == 1) begin
-                if(S_video_de_2d) begin
+                if(S_video_de_3d) begin
                     if(S_x < 12'd128)
                         O_hdmi_data <= 24'hff0000;
                     else if(S_x < 12'd256)
@@ -944,7 +1055,7 @@ module hdmi_mixer #(
                 end
             end
             else if(DEBUG_MODE == 2) begin
-                if(S_video_de_2d) begin
+                if(S_video_de_3d) begin
                     case (I_debug_status)
                         4'b0000: O_hdmi_data <= 24'h000000;
                         4'b0001: O_hdmi_data <= 24'hff0000;
@@ -959,7 +1070,7 @@ module hdmi_mixer #(
                 end
             end
             else if(DEBUG_MODE == 3) begin
-                if(S_video_de_2d) begin
+                if(S_video_de_3d) begin
                     if(S_x < 12'd256)
                         O_hdmi_data <= I_debug_status[0] ? 24'hff8000 : 24'h201000;
                     else if(S_x < 12'd512)
@@ -974,10 +1085,12 @@ module hdmi_mixer #(
                 end
             end
             else begin
-                if(S_osd_hit)
-                    O_hdmi_data <= S_osd_color;
+                if(glyph_region_q && S_pf_row_bits[15-glyph_col_q])
+                    O_hdmi_data <= COLOR_DYN_TEXT;
+                else if(logo_hit_q && S_logo_pixel[24])
+                    O_hdmi_data <= S_logo_pixel[23:0];
                 else
-                    O_hdmi_data <= S_video_data_2d;
+                    O_hdmi_data <= S_video_data_3d;
             end
         end
     end

@@ -1,0 +1,20 @@
+#-----------------------------------------------------------
+# xsim v2019.2 (64-bit)
+# SW Build 2708876 on Wed Nov  6 21:40:23 MST 2019
+# IP Build 2700528 on Thu Nov  7 00:09:20 MST 2019
+# Start of session at: Fri Oct  9 15:26:30 2026
+# Process ID: 27096
+# Current directory: E:/FPGA/workspace/anlu/sim/build_teammate_features/tb_cnn_handshake_720p
+# Command line: xsim.exe -log run.log -mode tcl -source {xsim.dir/tb_cnn_handshake_720p_snapshot/xsim_script.tcl}
+# Log file: E:/FPGA/workspace/anlu/sim/build_teammate_features/tb_cnn_handshake_720p/run.log
+# Journal file: E:/FPGA/workspace/anlu/sim/build_teammate_features/tb_cnn_handshake_720p\xsim.jou
+#-----------------------------------------------------------
+source xsim.dir/tb_cnn_handshake_720p_snapshot/xsim_script.tcl
+# xsim {tb_cnn_handshake_720p_snapshot} -autoloadwcfg -runall
+Vivado Simulator 2019.2
+Time resolution is 1 ps
+run -all
+[RESULT] CNN INPUT SAMPLER DOUBLE BUFFER TEST PASSED
+$finish called at time : 1382441 ns : File "E:/FPGA/workspace/anlu/sim/teammate_features/tb_cnn_handshake_720p.sv" Line 237
+exit
+INFO: [Common 17-206] Exiting xsim at Fri Oct  9 15:26:34 2026...

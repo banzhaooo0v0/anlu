@@ -59,7 +59,7 @@ module uial2axis #(
 *********************************************************/
 
   always @(posedge I_native_clk or negedge I_rst_n) begin
-    if (!I_rst_n || I_data_start || I_data_end) begin
+    if (!I_rst_n || I_data_start) begin
       hcnt <= 'b0;
     end else if (I_data_valid & hcnt < IMG_WIDTH_4X - 1) begin
       hcnt <= hcnt + 1'b1;
@@ -69,7 +69,7 @@ module uial2axis #(
   end
 
   always @(posedge I_native_clk or negedge I_rst_n) begin
-    if (!I_rst_n || I_data_start || I_data_end) begin
+    if (!I_rst_n || I_data_start) begin
       vcnt <= 'b0;
     end else if (axis_tlast & vcnt == IMG_HEIGHT - 1) begin
       vcnt <= 'b0;

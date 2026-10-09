@@ -1,0 +1,24 @@
+{
+  "checked_source_files": 245,
+  "changed_source_files": [
+    "BALANCE/balance_task.c",
+    "BALANCE/Inc/balance_task.h",
+    "HARDWARE/Inc/uartx.h",
+    "SYSTEM/sys/sys.c"
+  ],
+  "project_inputs": {
+    "Akm_Car": 75,
+    "Diff_Car": 75,
+    "Mec_Car": 75,
+    "4WD_Car": 75,
+    "Omni_Car": 75
+  },
+  "flash_start": "0x08000000",
+  "initial_sp": "0x20009f08",
+  "reset_handler": "0x8000255",
+  "binary_bytes": 69452,
+  "intel_hex_records": 4345,
+  "bin_sha256": "64e81509ed7db95c6ec4f3e1d9e608db37d99a40505ddf6f0248c47a5c999c96",
+  "hex_sha256": "679db582c25c618cd6b3340b74cf67731a9d89854dcdb87797ba412d5449cec8",
+  "status": "PASS; artifact verification only, no hardware test"
+}

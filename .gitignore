@@ -1,0 +1,8 @@
+/tmp/
+__pycache__/
+*.dmp
+/td_*.log
+/td_*.logw
+/td_project/td_*.log
+/td_project/td_*.logw
+/td_project/camera_to_dsi_display_Runs/

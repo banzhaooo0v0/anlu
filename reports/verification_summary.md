@@ -1,6 +1,12 @@
-# 安路 PH1P35 实时图像处理迁移验证报告
+# 安路 PH1P35 验证报告索引
 
-日期：2026年09月02日
+当前整合日期：**2026-10-09**，目标 **1280×720**。本次接入方向识别、STM32 小车控制、逐像素形态学以及配套 720p 摄像头/曝光/显示配置。
+
+最新结果以 [本次整合验证报告](integration_20261009.md) 为准。下列历史数据及 [10 月 8 日 TD 修复报告](td_fix_20261008.md) 对应旧的 1024×600 工程，不是当前源码或 bitstream 的通过证据。
+
+当前结果：15 项功能仿真及去雾/AWB/双图 DDR 回归通过；TD 最终布线 SWNS +0.115 ns、HWNS +0.020 ns、TNS 均为 0；已生成 [720p 未压缩 bitstream](../release/720p_20261009/camera_to_dsi_display_720p.bit)。单线程布线、关闭 bitstream 压缩的恢复过程及剩余硬件验证边界均记录在本次报告中。
+
+## 历史迁移记录（2026年09月02日）
 
 ## 交付范围
 
@@ -41,7 +47,9 @@ AWB 96 bit RGB
 - 灰度公式为 `(77 * R + 150 * G + 29 * B) >> 8`，四像素灰度取整数平均。
 - Sobel 使用原算法的 `Gx`、`Gy` 和 `abs(Gx) + abs(Gy) > threshold`。阈值默认 24，比较为严格大于。
 - 腐蚀和膨胀使用 Sobel 二值结果的因果 3×3 窗口。窗口右下角为当前处理组，`x_group < 2` 或 `y < 2` 输出黑色。
-- 四种模式固定为 `00` 原图、`01` Sobel、`10` 腐蚀、`11` 膨胀。按键映射已按低有效板载按键要求实现。
+- `image_process_stream_96` 保持四种输出编码：`00` 旁路、`01` 膨胀、`10` 腐蚀、`11` 原图；`isp_top` 在 `00` 模式前置轻量去雾，因而 HDMI 和 CNN 看到去雾后的 RGB/灰度。按键映射已按低有效板载按键要求实现。
+- `dehaze_stream_96` 使用四像素组暗通道、两条行缓存、固定大气光和分段透射率增益。它不使用逐像素除法，不改变非 `00` 模式的数据。
+- `video_in_dual` 将每个四帧循环槽拆成原图区和处理图区（处理图区偏移 `3_500_000`），两个异步 FIFO 交替写入；`11` 模式读原图区，其余模式读处理图区，因此两份图像可同时保留。
 - 算法模块每个有效输入拍产生一个固定延迟4拍的有效输出拍。`tuser`、`tlast`、`tvalid` 和输出数据在流水线中同步传递，不支持暂停式反压。
 - AWB 的官方帧开始信号是提前脉冲。`isp_top` 使用 `awb_frame_pending` 将它对齐到 AWB 首个有效 RGB 拍，避免模式和坐标漏锁存。
 - 96→128 打包器继续保留官方的提前帧开始通知，因为 `video_in` 用该通知提前复位 DDR FIFO。这个控制信号按官方接口可以独立于 128 位 `valid`，已在根目录总说明 PDF中说明。
@@ -62,6 +70,8 @@ AWB 96 bit RGB
 | 验证项目 | 结果 | 证据 |
 |---|---|---|
 | 独立 Python 算法参考模型 | PASS | `sim/run_image_process_reference.py` |
+| 去雾定点参考检查 | PASS | `sim/run_dehaze_reference.py` |
+| TD 6.2 工程源分析/展开 | PASS（源分析与 `video_in_dual` 展开） | `PRJ-1401`，97 个源文件；工具在既有加密宏库阶段触发 `macrolib.cpp` 断言 |
 | 原图、Sobel、腐蚀、膨胀 | PASS | 参考模型覆盖四种模式 |
 | 恒定图、水平边缘、垂直边缘、渐变、单点 | PASS | 参考模型测试矩阵 |
 | 阈值 1019、1020、1021 边界 | PASS | 覆盖等于、低于和高于梯度的比较行为 |
@@ -72,7 +82,7 @@ AWB 96 bit RGB
 | 96→128 输出标记对齐 | PASS | 参考模型确认每帧 115200 个 128 位输出拍、每行一个 `tlast` |
 | TD 独立图像流、模式选择器和 96→128 打包器 `check_rtl` | PASS | [`td_reorg_core_check.log`](td_reorg_core_check.log)；图像流识别 4 个行缓存 RAM；三模块均完成分析 |
 | 完整工程源文件分析 | PASS | [`td_reorg_source_check.log`](../td_project/td_reorg_source_check.log)；`PRJ-1401 : Successfully analyzed 88 source files.` |
-| 完整工程顶层层次展开 | PASS | 官方 TD 6.2.168116 完成 `elaborate -top design_top_wrapper`；日志见 [`td_syn_retry_final.log`](td_syn_retry_final.log) |
+| 完整工程顶层层次展开 | 历史 PASS；本次双路缓存增量分析展开到 `video_in_dual` 后触发既有加密宏库断言 | 官方历史日志见 [`td_syn_retry_final.log`](td_syn_retry_final.log)；本次使用 `E:\Software\TD5.6.2\bin\td_commands_prompt.exe` |
 | TD 综合 | PASS | 采用流水线修改后的 RTL 重跑 `optimize_rtl`、`optimize_gate`，并导出 `camera_to_dsi_display_gate.db`；Setup WNS `+0.919 ns`、TNS `0`、失败端点 `0`；日志见 [`td_syn_timing_pipeline_20260902.log`](td_syn_timing_pipeline_20260902.log) |
 | TD 布局布线 | PASS | 从新 gate 数据库导入后，`place`、`route` 和 `fix_hold` 完成，并导出新的 PR 数据库；最终 Setup WNS `+0.220 ns`、TNS `0`、失败端点 `0`；日志见 [`td_phy_timing_pipeline_20260902.log`](td_phy_timing_pipeline_20260902.log) |
 | TD 资源报告 | PASS（已生成） | 新布局后资源报告见 [`td_phy_timing_pipeline_phy.area`](td_phy_timing_pipeline_phy.area)：15327/21216 slice、30/108 eRAM、21/40 DSP、6/12 DDR byte、1/2 MIPI RX、3/6 PLL |
@@ -96,6 +106,8 @@ AWB 96 bit RGB
 - [顶层 wrapper](../user_source/hdl_source/design_top_wrapper.v)
 - [模式选择器](../user_source/hdl_source/ip/control/mode_selector.v)
 - [96 位图像处理流](../user_source/hdl_source/ip/image/image_process_stream_96.v)
+- [轻量去雾流](../user_source/hdl_source/ip/image/dehaze_stream_96.v)
+- [双图像 DDR 写入器](../user_source/hdl_source/ip/video/video_in_dual.v)
 - [ISP 顶层](../user_source/hdl_source/ip/image/isp_top.v)
 - [96→128 打包器](../user_source/hdl_source/ip/image/data96_128/data96_128.v)
 - [图像处理测试平台](../sim/tb_image_process_stream_96.sv)

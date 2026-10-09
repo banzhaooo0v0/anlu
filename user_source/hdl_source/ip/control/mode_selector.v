@@ -33,14 +33,17 @@
 // 2026年09月01日   V1.0        Codex             创建按键模式选择器。
 
 module mode_selector #(
-	parameter integer DEBOUNCE_CYCLES = 100000 // 去抖稳定周期，24 MHz下约4.17 ms。
+	parameter integer DEBOUNCE_CYCLES = 100000, // 24 MHz下约4.17 ms。
+	parameter integer SHORT_PRESS_LIMIT = 12000000 // 约0.5 s；长按KEY4仍为小车限速。
 ) (
 	// 全局时钟与复位
 	input  wire       I_clk,
 	input  wire       I_rst_n,
 
-	// 两个低有效板载按键
+	// 两路原有扩展口输入，保留旧版外接按钮/跳线的模式选择。
 	input  wire [1:0] I_button,
+	// 板载KEY4（低有效）短按循环画面，长按仍由小车控制模块限速。
+	input  wire       I_cycle_button_n,
 
 	// 当前帧算法模式
 	output reg  [1:0] O_mode
@@ -52,8 +55,13 @@ module mode_selector #(
 	// candidate_mode为去抖候选值，stable_count统计其连续稳定时间。
 	reg [1:0] candidate_mode;
 	reg [16:0] stable_count;
+	reg [1:0] external_mode;
+	reg [1:0] board_mode;
+	reg key_sync_1, key_sync_2, key_stable, key_stable_d;
+	reg [16:0] key_debounce_count;
+	reg [23:0] hold_count;
 
-// 低有效按键直接得到算法编码：11原图、10腐蚀、01膨胀、00 CNN。
+	// 模式编码：11原图、10腐蚀、01膨胀、00路牌识别。
 	wire [1:0] sampled_mode;
 
 	assign sampled_mode = button_sync_2;
@@ -66,6 +74,14 @@ module mode_selector #(
 			button_sync_2 <= 2'b11;
 			candidate_mode <= 2'b11;
 			stable_count <= 17'd0;
+			external_mode <= 2'b11;
+			board_mode <= 2'b11;
+			key_sync_1 <= 1'b1;
+			key_sync_2 <= 1'b1;
+			key_stable <= 1'b1;
+			key_stable_d <= 1'b1;
+			key_debounce_count <= 17'd0;
+			hold_count <= 24'd0;
 			O_mode <= 2'b11;
 		end
 		else begin
@@ -84,8 +100,40 @@ module mode_selector #(
 			end
 			else begin
 				// 候选模式稳定达到设定周期后更新输出。
-				O_mode <= candidate_mode;
+				external_mode <= candidate_mode;
 			end
+
+			key_sync_1 <= I_cycle_button_n;
+			key_sync_2 <= key_sync_1;
+			key_stable_d <= key_stable;
+			if (key_sync_2 == key_stable)
+				key_debounce_count <= 17'd0;
+			else if (key_debounce_count == DEBOUNCE_CYCLES - 1) begin
+				key_stable <= key_sync_2;
+				key_debounce_count <= 17'd0;
+			end
+			else
+				key_debounce_count <= key_debounce_count + 17'd1;
+
+			if (!key_stable) begin
+				if (hold_count < SHORT_PRESS_LIMIT)
+					hold_count <= hold_count + 24'd1;
+			end
+			else begin
+				// 仅短按释放时换模式；长按只保留原有小车限速作用。
+				if (!key_stable_d && hold_count < SHORT_PRESS_LIMIT &&
+				    external_mode == 2'b11) begin
+					case (board_mode)
+						2'b11: board_mode <= 2'b10;
+						2'b10: board_mode <= 2'b01;
+						2'b01: board_mode <= 2'b00;
+						default: board_mode <= 2'b11;
+					endcase
+				end
+				hold_count <= 24'd0;
+			end
+
+			O_mode <= (external_mode == 2'b11) ? board_mode : external_mode;
 		end
 	end
 

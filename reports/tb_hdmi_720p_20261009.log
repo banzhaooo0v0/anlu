@@ -1,0 +1,22 @@
+#-----------------------------------------------------------
+# xsim v2019.2 (64-bit)
+# SW Build 2708876 on Wed Nov  6 21:40:23 MST 2019
+# IP Build 2700528 on Thu Nov  7 00:09:20 MST 2019
+# Start of session at: Fri Oct  9 15:30:09 2026
+# Process ID: 26496
+# Current directory: E:/FPGA/workspace/anlu/sim/build_teammate_features/tb_hdmi_720p
+# Command line: xsim.exe -log run.log -mode tcl -source {xsim.dir/tb_hdmi_720p_snapshot/xsim_script.tcl}
+# Log file: E:/FPGA/workspace/anlu/sim/build_teammate_features/tb_hdmi_720p/run.log
+# Journal file: E:/FPGA/workspace/anlu/sim/build_teammate_features/tb_hdmi_720p\xsim.jou
+#-----------------------------------------------------------
+source xsim.dir/tb_hdmi_720p_snapshot/xsim_script.tcl
+# xsim {tb_hdmi_720p_snapshot} -autoloadwcfg -runall
+Vivado Simulator 2019.2
+Time resolution is 1 ps
+run -all
+PASS OSD final output pixels: 12288
+PASS HDMI 1280x720: 921600 pixels, 720 lines, 1237500 clocks/frame; two frames checked
+$finish called at time : 37125110 ns : File "E:/FPGA/workspace/anlu/sim/teammate_features/tb_hdmi_720p.sv" Line 60
+run: Time (s): cpu = 00:00:00 ; elapsed = 00:00:15 . Memory (MB): peak = 240.688 ; gain = 0.000
+exit
+INFO: [Common 17-206] Exiting xsim at Fri Oct  9 15:30:25 2026...

@@ -2,6 +2,8 @@
 
 日期：2026年09月02日
 
+2026-10-08 补充：为适配原图/处理图双缓存，`ip/image/signal_delay.v` 直接参数化已有 `ram_f84573da5ab5` 包装器，将 AWB 延迟 RAM 深度从固定 2048 改为 `IMG_WIDTH/4`。未修改 `user_source/ip_source` 中的该厂商包装器或 RAM 原语定义。`sim/models/awb_ram_behavioral.v` 只用于地址/容量等价性检查，不参与综合，也不代表厂商原语时序。
+
 ## 结论
 
 目标工程中的厂商 IP 和官方生成文件来自安路官方 `lab_hd_3_osd` 例程，不是临时创建，也不是从 `D:/la32r_soc` 复制。哈希核对在目标工程重排目录后完成。
@@ -48,5 +50,9 @@
 ## 本次新增 RTL 的 IP 边界
 
 `user_source/hdl_source/ip/image/image_process_stream_96.v` 是本次新增的算法 RTL。它不例化厂商 IP，四组行缓存由 Verilog 数组推断。TD 独立 `check_rtl` 结果为 4 个 RAM 推断，未出现 IP 实例错误。
+
+`user_source/hdl_source/ip/image/dehaze_stream_96.v` 是成员二新增的轻量去雾 RTL。它使用两组 8 位组级暗通道行缓存，TD 独立分析结果为 2 个 RAM 推断；透射率采用分段移位增益，没有除法器或整帧缓存。
+
+`user_source/hdl_source/ip/video/video_in_dual.v` 只复用已有 `w128_d512_fifo`，为原图和处理图各保留一条异步 FIFO，按突发交替写入 DDR 的同一帧槽不同地址区，无新增厂商 IP。
 
 `D:/la32r_soc/rtl/ip/image/img_accel.v` 和 `img_accel_calc.v` 只用于确认算法公式和窗口行为。原工程的 CPU AXI、DMA、静态整帧 BRAM、CNN 和 Xilinx IP 均未加入安路目标工程。

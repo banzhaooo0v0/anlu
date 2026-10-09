@@ -14,6 +14,7 @@ module tb_mode_selector;
         .I_clk   (clk),
         .I_rst_n (rst_n),
         .I_button(button),
+        .I_cycle_button_n(1'b1),
         .O_mode  (mode)
     );
 

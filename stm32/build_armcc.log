@@ -1,0 +1,10 @@
+Product: MDK Plus 5.24
+Component: ARM Compiler 5.06 update 5 (build 528)
+Tool: armcc [4d3621]
+For support see http://www.arm.com/support
+Software supplied by: ARM Limited
+"..\BALANCE\balance_task.c", line 1623: Warning:  #177-D: function "robot_mode_check"  was declared but never referenced
+  static void robot_mode_check(void)
+              ^
+..\BALANCE\balance_task.c: 1 warning, 0 errors
+BUILD SUCCESS: 70 source units; D:\qrsfpga\qrsfpga\stm32_car_control\stm32\WHEELTEC_C50X_FPGA_PD89\OBJ\cli_4WD\4WD_Car_FPGA_PD89.axf

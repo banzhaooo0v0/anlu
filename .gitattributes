@@ -1,0 +1,14 @@
+# Keep the Windows build input bytes reproducible on every checkout.
+/user_source/** text=auto eol=crlf
+/td_project/*.al text eol=crlf
+/td_project/*.sdc text eol=crlf
+# These verified inputs contain mixed line endings; preserve their exact bytes.
+/user_source/constraints_source/pin.adc -text
+/user_source/hdl_source/ip/image/demosaic_4x_2_0/line_buffer_demosaic.v -text
+/user_source/hdl_source/ip/image/demosaic_4x_2_0/zhenghe.v -text
+/user_source/hdl_source/ip/video/video_in_dual.v -text
+# Evidence hashes and the upstream STM32 delivery refer to exact file bytes.
+/reports/** -text
+/release/** -text
+/stm32/** -text
+/scripts/** -text

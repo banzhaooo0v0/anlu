@@ -1,0 +1,20 @@
+#-----------------------------------------------------------
+# xsim v2019.2 (64-bit)
+# SW Build 2708876 on Wed Nov  6 21:40:23 MST 2019
+# IP Build 2700528 on Thu Nov  7 00:09:20 MST 2019
+# Start of session at: Fri Oct  9 15:21:46 2026
+# Process ID: 19836
+# Current directory: E:/FPGA/workspace/anlu/sim/build_teammate_features/tb_demosaic_ram_resize
+# Command line: xsim.exe -log run.log -mode tcl -source {xsim.dir/tb_demosaic_ram_resize_snapshot/xsim_script.tcl}
+# Log file: E:/FPGA/workspace/anlu/sim/build_teammate_features/tb_demosaic_ram_resize/run.log
+# Journal file: E:/FPGA/workspace/anlu/sim/build_teammate_features/tb_demosaic_ram_resize\xsim.jou
+#-----------------------------------------------------------
+source xsim.dir/tb_demosaic_ram_resize_snapshot/xsim_script.tcl
+# xsim {tb_demosaic_ram_resize_snapshot} -autoloadwcfg -runall
+Vivado Simulator 2019.2
+Time resolution is 1 ps
+run -all
+PASS demosaic RAM depth/address equivalence: 10280 valid cycles
+$finish called at time : 138410 ns : File "E:/FPGA/workspace/anlu/sim/teammate_features/tb_demosaic_ram_resize.sv" Line 53
+exit
+INFO: [Common 17-206] Exiting xsim at Fri Oct  9 15:21:51 2026...

@@ -1,5 +1,5 @@
 create_clock -name {sys_clk_50m} -period 20.000 -waveform {0.000 10.000} [get_ports {I_sys_clk}]
-create_clock -name {mipi_rx_ck_pad} -period 2.222 -waveform {0.000 1.111} [get_nets {IO_rx_clk_pad_p}]
+create_clock -name {mipi_rx_ck_pad} -period 4.167 -waveform {0.000 2.083} [get_nets {IO_rx_clk_pad_p}]
 
 derive_clocks
 
@@ -15,3 +15,5 @@ set_clock_groups -asynchronous \
     -group [get_clocks {mipi_rx_ck_pad MIPI_RX_BYTE_CLK}] \
     -group [get_clocks {sys_clk_50m pll_clk_100m pll_clk_24m HDMI_PIXEL_CLK HDMI_SERIAL_CLK}] \
     -group [get_clocks {u_ph1p35_324_ddr_wrapper/u_ddr2/ddr_clk u_ph1p35_324_ddr_wrapper/u_ddr2/usr_clk}]
+
+# SC500CS native HD mode: 480 Mb/s/lane, 240 MHz DDR clock, 60 MHz byte clock.

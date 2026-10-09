@@ -1,0 +1,8 @@
+{
+  "default_startup_motion_disabled": true,
+  "factory_diagnostic_can_be_explicitly_enabled": true,
+  "uart3_tx": "PD8 / AF7",
+  "uart3_rx": "PD9 / AF7",
+  "method": "actual ARMCC preprocessing + compile-time pin assertions",
+  "status": "PASS"
+}

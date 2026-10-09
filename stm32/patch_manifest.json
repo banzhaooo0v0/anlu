@@ -1,0 +1,27 @@
+{
+  "source": "D:\\qrsfpga\\car\\analysis_work\\source\\WHEELTEC_C50X_2025.12.26",
+  "copy": "D:\\qrsfpga\\qrsfpga\\stm32_car_control\\stm32\\WHEELTEC_C50X_FPGA_PD89",
+  "patch_encoding": "UTF-8; vendor C/H files retain original GBK bytes",
+  "changes": [
+    {
+      "path": "HARDWARE/Inc/uartx.h",
+      "original_sha256": "2df525114264b8ed7e6c62761d451b3d9311e8cc903c57eabeb07ad4fcc14676",
+      "patched_sha256": "ea156a625d92a2e53dc40efb21338933e910b8007dd181173ee3838ab2ae9eba"
+    },
+    {
+      "path": "SYSTEM/sys/sys.c",
+      "original_sha256": "732f8d66f240103e5c1b69ae71019bd58dcc6a5bb6d6c009b15f78632aa7d8e6",
+      "patched_sha256": "02992394269e27cb32810de0e31fa699aa9401b8ac8fc10b8b8146c7b11625d2"
+    },
+    {
+      "path": "BALANCE/balance_task.c",
+      "original_sha256": "cca547d5e858d308f77915b3c5f7d866c592c57c8b0aee53234fa1a4c9d462f8",
+      "patched_sha256": "251b14d56292ef0c8248627014e5da1a13d52e77b3a5305aa0f6c4ca6861b9db"
+    },
+    {
+      "path": "BALANCE/Inc/balance_task.h",
+      "original_sha256": "efecea6752fb7af8c95554d409093a6d227ebfffc2f5003cb3e444b8e4100d9b",
+      "patched_sha256": "2a27969a6b9054465efa49061d6265d111d228663a505a1b3f2bb0b43d92a0f4"
+    }
+  ]
+}

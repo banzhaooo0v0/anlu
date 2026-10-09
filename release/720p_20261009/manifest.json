@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-09",
+  "resolution": [
+    1280,
+    720
+  ],
+  "device": "PH1P35MDG324",
+  "speed": 3,
+  "td_version": "6.2.168116",
+  "build_method": "synthesis 20261009_153827; single-thread route from its placement checkpoint; fresh-process uncompressed bitgen",
+  "route_threads": 1,
+  "bitstream_compression": false,
+  "timing_ns": {
+    "SWNS": 0.115,
+    "STNS": 0.0,
+    "HWNS": 0.02,
+    "HTNS": 0.0
+  },
+  "sta_coverage_percent": 95.56,
+  "resources": {
+    "slice": {
+      "used": 20223,
+      "available": 21216
+    },
+    "eram": {
+      "used": 105,
+      "available": 108
+    },
+    "dsp": {
+      "used": 34,
+      "available": 40
+    }
+  },
+  "hardware_tested": false,
+  "files": {
+    "camera_to_dsi_display_720p.bit": {
+      "bytes": 1789539,
+      "sha256": "2c78e5af304b519c3cd3006dec3775968d17615cd82f06b580547b872d0831af"
+    },
+    "source_sha256.json": {
+      "bytes": 26067,
+      "sha256": "703ff3a261fb0016c7e7df07af5a05ae4a4d320e3141945895ba851a22ff35f3"
+    }
+  },
+  "evidence": {
+    "reports/td_bitgen_final_20261009.log": {
+      "sha256": "86e078c2cc5315780ee72505d8e58d0c6858e1a8a3cd60fb819d3d02824801df"
+    },
+    "reports/td_pr_20261009_single.timing": {
+      "sha256": "8d2a83c1e6a23e168d754aec12fc723f991591f30e0d0f04b5064737e1f0fe8b"
+    },
+    "reports/td_phy_20261009_single.area": {
+      "sha256": "42c0c90023e29932cacd1be22b1d127fe003953e98318a879a25016317988a43"
+    },
+    "reports/td_route_resume_single_20261009.log": {
+      "sha256": "6a178883d83f211fe9ecb27387e56d170fe261e8b207a6f7a0cca78f55ea9dfe"
+    },
+    "reports/feature_tests_720p_20261009.json": {
+      "sha256": "9c2eb1fa2b8f733fcc8135a976c432bf5079d592253023a6cffa766721db2469"
+    },
+    "scripts/run_td_verify.ps1": {
+      "sha256": "614922e0688179a02fbc334872b746b703612ee753823a6183ea8be46dda65a6"
+    },
+    "scripts/resume_td_route.tcl": {
+      "sha256": "50b473bfbef57b9c4847bdb5079aca22a7c9272b1dd245137612d6c04741e181"
+    },
+    "scripts/resume_td_bitgen.tcl": {
+      "sha256": "62b549c3114511b68b9e0eacab3e06ec5958b521cc35f3162ae40a09bfce5054"
+    }
+  }
+}
