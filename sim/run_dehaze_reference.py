@@ -16,22 +16,12 @@ def transmission(dark):
 
 def dehaze_channel(value, dark):
     t = transmission(dark)
-    # RTL shifts an unsigned magnitude, then restores the sign.
-    diff = abs(value - ATMOSPHERIC_LIGHT)
-    if t >= 240:
-        correction = diff
-    elif t >= 224:
-        correction = diff + (diff >> 4)
-    elif t >= 192:
-        correction = diff + (diff >> 2)
-    elif t >= 160:
-        correction = diff + (diff >> 1)
-    elif t >= 128:
-        correction = diff + (diff >> 1) + (diff >> 2)
-    else:
-        correction = diff << 1
-    signed_correction = correction if value >= ATMOSPHERIC_LIGHT else -correction
-    return max(0, min(255, ATMOSPHERIC_LIGHT + signed_correction))
+    # Fine-step five-eighths-strength reciprocal; divide here independently of RTL LUT.
+    extra_q6 = min(48, (40 * (256 - t) + t // 2) // t)
+    correction = (abs(value - ATMOSPHERIC_LIGHT) * extra_q6 + 32) // 64
+    result = value + correction if value >= ATMOSPHERIC_LIGHT else value - correction
+    return max(0, min(255, result))
+
 
 
 def main():
@@ -41,11 +31,17 @@ def main():
     assert dehaze_channel(80, 64) < 80
     assert dehaze_channel(255, 255) == 255
     assert dehaze_channel(0, 255) == 0
+    # All 256x256 channel/dark pairs: clipping and bounded adjacent gain steps.
+    max_jump = 0
     for dark in range(256):
         assert 64 <= transmission(dark) <= 256
-        for value in (0, 32, 96, 160, 224, 255):
+        for value in range(256):
             result = dehaze_channel(value, dark)
             assert 0 <= result <= 255
+            if dark:
+                max_jump = max(max_jump, abs(result - dehaze_channel(value, dark-1)))
+    assert max_jump <= 4, max_jump
+    print(f"gain continuity: max one-code dark change = {max_jump} output codes")
 
     # The RTL uses the minimum across four RGB pixels for one group dark value.
     assert dark_group([(100, 90, 80), (220, 210, 200), (180, 170, 160), (10, 20, 30)]) == 10

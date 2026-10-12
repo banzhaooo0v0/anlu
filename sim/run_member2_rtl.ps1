@@ -1,4 +1,7 @@
-param([string]$VivadoBin = 'E:\Software\Vivado\Vivado\2019.2\bin')
+param(
+    [string]$VivadoBin = 'E:\Software\Vivado\Vivado\2019.2\bin',
+    [string]$ReportTag = (Get-Date -Format 'yyyyMMdd')
+)
 $ErrorActionPreference = 'Stop'
 $repoDir = Split-Path -Parent $PSScriptRoot
 $buildDir = Join-Path $PSScriptRoot 'build_dual'
@@ -13,7 +16,7 @@ try {
     & "$VivadoBin/xelab.bat" tb_dehaze_pipeline -s dehaze_test -R
     $log = Get-Content xsim.log -Raw
     if ($LASTEXITCODE -ne 0 -or $log -notmatch 'PASS: dehaze pipeline' -or $log -match 'Fatal:') { throw 'Dehaze simulation failed' }
-    Copy-Item xsim.log '../../reports/rtl_dehaze_pipeline_20261009.log'
+    Copy-Item xsim.log "../../reports/rtl_dehaze_pipeline_$ReportTag.log"
 
     # Vendor primitive is encrypted without an XSim key. This test explicitly
     # checks address/depth equivalence using the portable memory contract only.
@@ -25,5 +28,5 @@ try {
     $log = Get-Content xsim.log -Raw
     if ($LASTEXITCODE -ne 0 -or $log -notmatch 'width=1024 groups=1536' -or
         $log -notmatch 'width=1280 groups=1920' -or $log -notmatch 'width=1920 groups=2880' -or $log -match 'Fatal:') { throw 'AWB equivalence failed' }
-    Copy-Item xsim.log '../../reports/rtl_awb_resize_20261009.log'
+    Copy-Item xsim.log "../../reports/rtl_awb_resize_$ReportTag.log"
 } finally { Pop-Location }

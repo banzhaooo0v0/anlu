@@ -1,4 +1,7 @@
-param([string]$VivadoBin = 'E:\Software\Vivado\Vivado\2019.2\bin')
+param(
+    [string]$VivadoBin = 'E:\Software\Vivado\Vivado\2019.2\bin',
+    [string]$ReportTag = (Get-Date -Format 'yyyyMMdd')
+)
 $ErrorActionPreference = 'Stop'
 $buildDir = Join-Path $PSScriptRoot 'build_dual'
 New-Item -ItemType Directory -Force $buildDir | Out-Null
@@ -17,6 +20,6 @@ try {
     if ($LASTEXITCODE -ne 0 -or $log -notmatch 'PASS: integrated member2 path' -or $log -match 'Fatal:') {
         throw 'Integration scoreboard did not pass'
     }
-    Copy-Item xsim.log '../../reports/rtl_member2_integration_20261009.log'
+    Copy-Item xsim.log "../../reports/rtl_member2_integration_$ReportTag.log"
 } finally { Pop-Location }
 

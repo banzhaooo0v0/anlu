@@ -1,0 +1,42 @@
+[
+  {
+    "image": "Fog_1",
+    "v3_mean": 149.62,
+    "v4_mean": 147.27,
+    "delta": -2.35,
+    "mismatches": 0,
+    "bypass_exact": true
+  },
+  {
+    "image": "Fog_2",
+    "v3_mean": 113.47,
+    "v4_mean": 109.03,
+    "delta": -4.45,
+    "mismatches": 0,
+    "bypass_exact": true
+  },
+  {
+    "image": "Fog_3",
+    "v3_mean": 149.98,
+    "v4_mean": 146.06,
+    "delta": -3.92,
+    "mismatches": 0,
+    "bypass_exact": true
+  },
+  {
+    "image": "Fog_4",
+    "v3_mean": 105.26,
+    "v4_mean": 97.57,
+    "delta": -7.7,
+    "mismatches": 0,
+    "bypass_exact": true
+  },
+  {
+    "image": "Fog_5",
+    "v3_mean": 142.2,
+    "v4_mean": 137.65,
+    "delta": -4.55,
+    "mismatches": 0,
+    "bypass_exact": true
+  }
+]\n

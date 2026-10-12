@@ -2,7 +2,6 @@
 import argparse
 import hashlib
 import json
-import shutil
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -21,10 +20,16 @@ def main():
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     im = Image.open(args.input).convert("RGB")
-    w, h = im.size
-    if w % 4 or w < 12:
-        raise ValueError("Image width must be divisible by four and at least 12")
-    raw = im.tobytes()
+    original_w, h = im.size
+    if original_w < 12:
+        raise ValueError("Image width must be at least 12")
+    w = (original_w + 3) // 4 * 4
+    # Preserve source pixels; duplicate only the last column to fill the last lane.
+    padded = Image.new("RGB", (w, h))
+    padded.paste(im, (0, 0))
+    for x in range(original_w, w):
+        padded.paste(im.crop((original_w-1, 0, original_w, h)), (x, 0))
+    raw = padded.tobytes()
     build, output = args.build, args.output
     build.mkdir(parents=True, exist_ok=True)
     if args.stage == "prepare":
@@ -34,7 +39,7 @@ def main():
                 f.write(raw[start:start+12][::-1].hex() + "\n")
         (build / "image_size.vh").write_text(
             f"`define IMAGE_WIDTH {w}\n`define IMAGE_HEIGHT {h}\n", encoding="ascii")
-        print(f"Prepared {w}x{h}, {w*h//4} RGB888 groups; no resizing")
+        print(f"Prepared {w}x{h}, {w*h//4} RGB888 groups; right edge padded by {w-original_w}, no resizing")
         return
 
     def decode(name):
@@ -62,9 +67,13 @@ def main():
     if mismatches:
         raise AssertionError(f"RTL/reference mismatch: {mismatches} channels")
     output.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(args.input, output / "Fog_source.png")
-    Image.frombytes("RGB", (w,h), original).save(output / "Fog_original_rtl.png")
-    result = Image.frombytes("RGB", (w,h), processed)
+    im.save(output / "Fog_source.png")
+    crop_box = (0, 0, original_w, h)
+    original_image = Image.frombytes("RGB", (w,h), original).crop(crop_box)
+    original_image.save(output / "Fog_original_rtl.png")
+    result = Image.frombytes("RGB", (w,h), processed).crop(crop_box)
+    rtl_width = w
+    w = original_w
     result.save(output / "Fog_dehazed_rtl.png")
     comparison = Image.new("RGB", (w*2, h+64), "#162130")
     comparison.paste(im, (0,64))
@@ -77,12 +86,14 @@ def main():
     preview.thumbnail((1600,900))
     preview.save(output / "Fog_comparison_preview.png")
     rtl = Path(__file__).resolve().parents[1] / "user_source/hdl_source/ip/image/dehaze_stream_96.v"
-    metrics = dict(width=w, height=h, pixels=w*h, groups=w*h//4,
+    metrics = dict(algorithm="fine_q6_five_eighths_strength_v4",
+                   width=w, height=h, rtl_width=rtl_width, right_padding=rtl_width-w,
+                   pixels=w*h, groups=rtl_width*h//4,
                    checked_channels=len(raw), reference_mismatches=mismatches,
                    bypass_exact=True, source_sha256=sha256(args.input), rtl_sha256=sha256(rtl),
                    output_sha256=sha256(output / "Fog_dehazed_rtl.png"),
-                   parameters=dict(ATMOSPHERIC_LIGHT=240, OMEGA_Q8=218, MIN_TRANSMISSION=64),
-                   mean_rgb_before=sum(raw)/len(raw), mean_rgb_after=sum(processed)/len(processed))
+                   parameters=dict(ATMOSPHERIC_LIGHT=240, OMEGA_Q8=218, MIN_TRANSMISSION=64, EXTRA_GAIN_CAP_Q6=48, STRENGTH="5/8"),
+                   mean_rgb_before=sum(im.tobytes())/(w*h*3), mean_rgb_after=sum(result.tobytes())/(w*h*3))
     (output / "verification.json").write_text(json.dumps(metrics, indent=2)+"\n", encoding="utf-8")
     print(f"PASS: {w*h} RTL pixels / {len(raw)} channels match reference; bypass exact")
     print(f"Saved {output / 'Fog_dehazed_rtl.png'}")

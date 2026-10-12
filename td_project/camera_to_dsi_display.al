@@ -655,15 +655,15 @@
     <Runs>
         <Run Name="syn_1" Type="Synthesis" ConstraintSet="constraint_1" Description="" Active="true" useDefaultScript="false">
             <Strategy Name="Default_Synthesis_Strategy">
+                <GlobalProperty>
+                    <thread>1</thread>
+                </GlobalProperty>
             </Strategy>
             <UserParams>
             </UserParams>
         </Run>
         <Run Name="phy_1" Type="PhysicalDesign" ConstraintSet="constraint_1" Description="" SynRun="syn_1" Active="true">
             <Strategy Name="Default_PhysicalDesign_Strategy">
-                <BitgenProperty::GeneralOption>
-                    <compress>off</compress>
-                </BitgenProperty::GeneralOption>
                 <GlobalProperty>
                     <thread>1</thread>
                 </GlobalProperty>

@@ -45,7 +45,7 @@ module tb_member2_integration;
         if (!busy || !req) $fatal(1,"DDR ownership");
         if (addr >= frame*7000000+3500000) begin
             if (addr !== frame*7000000+3500000+proc_seen*8 ||
-                data !== (frame==0 ? {16{8'd160}} : {16{8'd200}}))
+                data !== (frame==0 ? {16{8'd170}} : {16{8'd200}}))
                 $fatal(1,"integrated processed frame=%0d beat=%0d addr=%0d data=%h",frame,proc_seen,addr,data);
             proc_seen=proc_seen+1;
         end else begin

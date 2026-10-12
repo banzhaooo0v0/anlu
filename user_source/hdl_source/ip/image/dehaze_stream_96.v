@@ -2,6 +2,8 @@
 // Four RGB888 pixels per clock; causal 3x3 group-dark window.
 // Eleven register stages (input capture through output), no backpressure.
 // Missing top/left neighbors are excluded. Mode is latched on valid tuser.
+// Bounded five-eighths-strength reciprocal gain, in 1/64 steps.
+// Two independent 8x7 products share each PH1P 27x18 DSP multiplier.
 module dehaze_stream_96 #(
     parameter integer IMG_WIDTH = 1280,
     parameter integer IMG_HEIGHT = 720,
@@ -33,11 +35,10 @@ module dehaze_stream_96 #(
     reg [15:0] product6;
     wire [9:0] estimate6 = 10'd256 - ((product6 + 16'd128) >> 8);
     reg [9:0] transmission7;
-    reg [2:0] gain8;
-    reg [8:0] magnitude8 [0:11];
-    reg [11:0] positive8, positive9;
-    reg [8:0] correction9 [0:11];
-    wire [9:0] restored [0:11];
+    reg [5:0] gain8;
+    reg [13:0] atmosphere9;
+    wire [14:0] product9 [0:11];
+    wire [15:0] restored [0:11];
     integer i;
 
     function [7:0] min2;
@@ -49,11 +50,211 @@ module dehaze_stream_96 #(
         begin min3 = min2(min2(a,b),c); end
     endfunction
 
-    // One final add/subtract per channel, after the gain has been applied.
+    // k = round(40*(256-t)/t), capped to 48. Effective gain = 1+k/64.
+    // Division is evaluated OFFLINE by sim/generate_dehaze_gain_lut.py;
+    // the RTL contains only a small constant decoder.
+    function [5:0] reciprocal_extra;
+        input [9:0] t;
+        begin
+            case (t)
+                10'd103: reciprocal_extra = 6'd48;
+                10'd104: reciprocal_extra = 6'd48;
+                10'd105: reciprocal_extra = 6'd48;
+                10'd106: reciprocal_extra = 6'd48;
+                10'd107: reciprocal_extra = 6'd48;
+                10'd108: reciprocal_extra = 6'd48;
+                10'd109: reciprocal_extra = 6'd48;
+                10'd110: reciprocal_extra = 6'd48;
+                10'd111: reciprocal_extra = 6'd48;
+                10'd112: reciprocal_extra = 6'd48;
+                10'd113: reciprocal_extra = 6'd48;
+                10'd114: reciprocal_extra = 6'd48;
+                10'd115: reciprocal_extra = 6'd48;
+                10'd116: reciprocal_extra = 6'd48;
+                10'd117: reciprocal_extra = 6'd48;
+                10'd118: reciprocal_extra = 6'd47;
+                10'd119: reciprocal_extra = 6'd46;
+                10'd120: reciprocal_extra = 6'd45;
+                10'd121: reciprocal_extra = 6'd45;
+                10'd122: reciprocal_extra = 6'd44;
+                10'd123: reciprocal_extra = 6'd43;
+                10'd124: reciprocal_extra = 6'd43;
+                10'd125: reciprocal_extra = 6'd42;
+                10'd126: reciprocal_extra = 6'd41;
+                10'd127: reciprocal_extra = 6'd41;
+                10'd128: reciprocal_extra = 6'd40;
+                10'd129: reciprocal_extra = 6'd39;
+                10'd130: reciprocal_extra = 6'd39;
+                10'd131: reciprocal_extra = 6'd38;
+                10'd132: reciprocal_extra = 6'd38;
+                10'd133: reciprocal_extra = 6'd37;
+                10'd134: reciprocal_extra = 6'd36;
+                10'd135: reciprocal_extra = 6'd36;
+                10'd136: reciprocal_extra = 6'd35;
+                10'd137: reciprocal_extra = 6'd35;
+                10'd138: reciprocal_extra = 6'd34;
+                10'd139: reciprocal_extra = 6'd34;
+                10'd140: reciprocal_extra = 6'd33;
+                10'd141: reciprocal_extra = 6'd33;
+                10'd142: reciprocal_extra = 6'd32;
+                10'd143: reciprocal_extra = 6'd32;
+                10'd144: reciprocal_extra = 6'd31;
+                10'd145: reciprocal_extra = 6'd31;
+                10'd146: reciprocal_extra = 6'd30;
+                10'd147: reciprocal_extra = 6'd30;
+                10'd148: reciprocal_extra = 6'd29;
+                10'd149: reciprocal_extra = 6'd29;
+                10'd150: reciprocal_extra = 6'd28;
+                10'd151: reciprocal_extra = 6'd28;
+                10'd152: reciprocal_extra = 6'd27;
+                10'd153: reciprocal_extra = 6'd27;
+                10'd154: reciprocal_extra = 6'd26;
+                10'd155: reciprocal_extra = 6'd26;
+                10'd156: reciprocal_extra = 6'd26;
+                10'd157: reciprocal_extra = 6'd25;
+                10'd158: reciprocal_extra = 6'd25;
+                10'd159: reciprocal_extra = 6'd24;
+                10'd160: reciprocal_extra = 6'd24;
+                10'd161: reciprocal_extra = 6'd24;
+                10'd162: reciprocal_extra = 6'd23;
+                10'd163: reciprocal_extra = 6'd23;
+                10'd164: reciprocal_extra = 6'd22;
+                10'd165: reciprocal_extra = 6'd22;
+                10'd166: reciprocal_extra = 6'd22;
+                10'd167: reciprocal_extra = 6'd21;
+                10'd168: reciprocal_extra = 6'd21;
+                10'd169: reciprocal_extra = 6'd21;
+                10'd170: reciprocal_extra = 6'd20;
+                10'd171: reciprocal_extra = 6'd20;
+                10'd172: reciprocal_extra = 6'd20;
+                10'd173: reciprocal_extra = 6'd19;
+                10'd174: reciprocal_extra = 6'd19;
+                10'd175: reciprocal_extra = 6'd19;
+                10'd176: reciprocal_extra = 6'd18;
+                10'd177: reciprocal_extra = 6'd18;
+                10'd178: reciprocal_extra = 6'd18;
+                10'd179: reciprocal_extra = 6'd17;
+                10'd180: reciprocal_extra = 6'd17;
+                10'd181: reciprocal_extra = 6'd17;
+                10'd182: reciprocal_extra = 6'd16;
+                10'd183: reciprocal_extra = 6'd16;
+                10'd184: reciprocal_extra = 6'd16;
+                10'd185: reciprocal_extra = 6'd15;
+                10'd186: reciprocal_extra = 6'd15;
+                10'd187: reciprocal_extra = 6'd15;
+                10'd188: reciprocal_extra = 6'd14;
+                10'd189: reciprocal_extra = 6'd14;
+                10'd190: reciprocal_extra = 6'd14;
+                10'd191: reciprocal_extra = 6'd14;
+                10'd192: reciprocal_extra = 6'd13;
+                10'd193: reciprocal_extra = 6'd13;
+                10'd194: reciprocal_extra = 6'd13;
+                10'd195: reciprocal_extra = 6'd13;
+                10'd196: reciprocal_extra = 6'd12;
+                10'd197: reciprocal_extra = 6'd12;
+                10'd198: reciprocal_extra = 6'd12;
+                10'd199: reciprocal_extra = 6'd11;
+                10'd200: reciprocal_extra = 6'd11;
+                10'd201: reciprocal_extra = 6'd11;
+                10'd202: reciprocal_extra = 6'd11;
+                10'd203: reciprocal_extra = 6'd10;
+                10'd204: reciprocal_extra = 6'd10;
+                10'd205: reciprocal_extra = 6'd10;
+                10'd206: reciprocal_extra = 6'd10;
+                10'd207: reciprocal_extra = 6'd9;
+                10'd208: reciprocal_extra = 6'd9;
+                10'd209: reciprocal_extra = 6'd9;
+                10'd210: reciprocal_extra = 6'd9;
+                10'd211: reciprocal_extra = 6'd9;
+                10'd212: reciprocal_extra = 6'd8;
+                10'd213: reciprocal_extra = 6'd8;
+                10'd214: reciprocal_extra = 6'd8;
+                10'd215: reciprocal_extra = 6'd8;
+                10'd216: reciprocal_extra = 6'd7;
+                10'd217: reciprocal_extra = 6'd7;
+                10'd218: reciprocal_extra = 6'd7;
+                10'd219: reciprocal_extra = 6'd7;
+                10'd220: reciprocal_extra = 6'd7;
+                10'd221: reciprocal_extra = 6'd6;
+                10'd222: reciprocal_extra = 6'd6;
+                10'd223: reciprocal_extra = 6'd6;
+                10'd224: reciprocal_extra = 6'd6;
+                10'd225: reciprocal_extra = 6'd6;
+                10'd226: reciprocal_extra = 6'd5;
+                10'd227: reciprocal_extra = 6'd5;
+                10'd228: reciprocal_extra = 6'd5;
+                10'd229: reciprocal_extra = 6'd5;
+                10'd230: reciprocal_extra = 6'd5;
+                10'd231: reciprocal_extra = 6'd4;
+                10'd232: reciprocal_extra = 6'd4;
+                10'd233: reciprocal_extra = 6'd4;
+                10'd234: reciprocal_extra = 6'd4;
+                10'd235: reciprocal_extra = 6'd4;
+                10'd236: reciprocal_extra = 6'd3;
+                10'd237: reciprocal_extra = 6'd3;
+                10'd238: reciprocal_extra = 6'd3;
+                10'd239: reciprocal_extra = 6'd3;
+                10'd240: reciprocal_extra = 6'd3;
+                10'd241: reciprocal_extra = 6'd2;
+                10'd242: reciprocal_extra = 6'd2;
+                10'd243: reciprocal_extra = 6'd2;
+                10'd244: reciprocal_extra = 6'd2;
+                10'd245: reciprocal_extra = 6'd2;
+                10'd246: reciprocal_extra = 6'd2;
+                10'd247: reciprocal_extra = 6'd1;
+                10'd248: reciprocal_extra = 6'd1;
+                10'd249: reciprocal_extra = 6'd1;
+                10'd250: reciprocal_extra = 6'd1;
+                10'd251: reciprocal_extra = 6'd1;
+                10'd252: reciprocal_extra = 6'd1;
+                10'd253: reciprocal_extra = 6'd0;
+                10'd254: reciprocal_extra = 6'd0;
+                10'd255: reciprocal_extra = 6'd0;
+                10'd256: reciprocal_extra = 6'd0;
+                default: reciprocal_extra = 6'd48;
+            endcase
+        end
+    endfunction
+
+    // I +/- round(abs(I-A)*k/64) is exactly
+    // floor((I*(64+k)-A*k+(I>=A ? 32 : 31))/64).
+    // Share A*k across all channels; avoid 12 absolute-value datapaths.
+    // Constant A is implemented explicitly by shifts/adds, not another DSP.
+    function [13:0] atmospheric_product;
+        input [5:0] k;
+        integer bit_index;
+        reg [13:0] accum;
+        begin
+            accum = 0;
+            for (bit_index=0; bit_index<8; bit_index=bit_index+1)
+                if ((ATMOSPHERIC_LIGHT >> bit_index) & 1)
+                    accum = accum + ({8'd0,k} << bit_index);
+            atmospheric_product = accum;
+        end
+    endfunction
+
+    // Pack two pixels 15 bits apart, sharing their common 7-bit gain.
+    // 255*127+32 < 2^15, including rounding: lanes cannot carry into each other.
+    // 23x7 fits one PH1P 27x18 DSP. S9/S10 and all control latency are unchanged.
     genvar c;
+    generate for (c=0; c<6; c=c+1) begin: g_packed_mult
+        wire [7:0] low_pixel = pixels[8][(2*c)*8+:8];
+        wire [7:0] high_pixel = pixels[8][(2*c+1)*8+:8];
+        wire [22:0] packed_pixels = {high_pixel,7'd0,low_pixel};
+        wire [29:0] packed_product = packed_pixels * {1'b1,gain8};
+        wire [14:0] low_round = low_pixel >= ATMOSPHERIC_LIGHT ? 15'd32 : 15'd31;
+        wire [14:0] high_round = high_pixel >= ATMOSPHERIC_LIGHT ? 15'd32 : 15'd31;
+        reg [29:0] rounded9;
+        always @(posedge I_clk or negedge I_rst_n) begin
+            if (!I_rst_n) rounded9 <= 0;
+            else rounded9 <= packed_product + {high_round,low_round};
+        end
+        assign product9[2*c] = rounded9[14:0];
+        assign product9[2*c+1] = rounded9[29:15];
+    end endgenerate
     generate for (c=0; c<12; c=c+1) begin: g_restore
-        assign restored[c] = positive9[c] ? ATMOSPHERIC_LIGHT + correction9[c] :
-            (correction9[c] > ATMOSPHERIC_LIGHT ? 10'd0 : ATMOSPHERIC_LIGHT - correction9[c]);
+        // A signed result in Q6; sign and bit14 implement the two clip bounds.
+        assign restored[c] = {1'b0,product9[c]} - {2'd0,atmosphere9};
     end endgenerate
 
     // Memories are intentionally not reset, allowing RAM inference. Each
@@ -74,11 +275,10 @@ module dehaze_stream_96 #(
             dark2 <= 0; row_top3 <= 0; row_mid3 <= 0; row_cur3 <= 0;
             vertical4 <= 0; left1 <= 0; left2 <= 0; window5 <= 0;
             product6 <= 0; transmission7 <= 0; gain8 <= 0;
-            positive8 <= 0; positive9 <= 0;
+            atmosphere9 <= 0;
             O_tvalid <= 0; O_tuser <= 0; O_tlast <= 0; O_tdata <= 0;
             for (i=0; i<10; i=i+1) pixels[i] <= 0;
             for (i=0; i<4; i=i+1) pixel_min1[i] <= 0;
-            for (i=0; i<12; i=i+1) begin magnitude8[i] <= 0; correction9[i] <= 0; end
         end else begin
             // S0 isolates AWB's combinational output from the dark-channel tree.
             pixels[0] <= I_tdata;
@@ -119,33 +319,16 @@ module dehaze_stream_96 #(
                 left1 <= vertical4;
                 left2 <= left1;
             end
-            // S6/S7 fixed-point transmission. S8 chooses the reciprocal segment.
+            // S6/S7 transmission; S8 bounded fine-step reciprocal decoder.
             product6 <= window5 * OMEGA_Q8;
             transmission7 <= estimate6 < MIN_TRANSMISSION ? MIN_TRANSMISSION : estimate6;
-            if (transmission7 >= 240) gain8 <= 0;
-            else if (transmission7 >= 224) gain8 <= 1;
-            else if (transmission7 >= 192) gain8 <= 2;
-            else if (transmission7 >= 160) gain8 <= 3;
-            else if (transmission7 >= 128) gain8 <= 4;
-            else gain8 <= 5;
+            gain8 <= reciprocal_extra(transmission7);
+            atmosphere9 <= atmospheric_product(gain8);
             for (i=0; i<12; i=i+1) begin
-                positive8[i] <= pixels[7][i*8+:8] >= ATMOSPHERIC_LIGHT;
-                magnitude8[i] <= pixels[7][i*8+:8] >= ATMOSPHERIC_LIGHT ?
-                    pixels[7][i*8+:8] - ATMOSPHERIC_LIGHT : ATMOSPHERIC_LIGHT - pixels[7][i*8+:8];
-                // S9 shift/add gain on unsigned magnitude, preserving rounding.
-                case (gain8)
-                    0: correction9[i] <= magnitude8[i];
-                    1: correction9[i] <= magnitude8[i] + (magnitude8[i] >> 4);
-                    2: correction9[i] <= magnitude8[i] + (magnitude8[i] >> 2);
-                    3: correction9[i] <= magnitude8[i] + (magnitude8[i] >> 1);
-                    4: correction9[i] <= magnitude8[i] + (magnitude8[i] >> 1) + (magnitude8[i] >> 2);
-                    default: correction9[i] <= magnitude8[i] << 1;
-                endcase
                 // S10 saturation or a bypass with exactly the same latency.
                 O_tdata[i*8+:8] <= !enable_pipe[9] ? pixels[9][i*8+:8] :
-                    (restored[i] > 255 ? 8'hff : restored[i][7:0]);
+                    (restored[i][15] ? 8'd0 : (restored[i][14] ? 8'hff : restored[i][13:6]));
             end
-            positive9 <= positive8;
             O_tvalid <= valid_pipe[9];
             O_tuser <= user_pipe[9];
             O_tlast <= last_pipe[9];

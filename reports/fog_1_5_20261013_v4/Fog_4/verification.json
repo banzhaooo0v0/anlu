@@ -1,0 +1,24 @@
+{
+  "algorithm": "fine_q6_five_eighths_strength_v4",
+  "width": 675,
+  "height": 334,
+  "rtl_width": 676,
+  "right_padding": 1,
+  "pixels": 225450,
+  "groups": 56446,
+  "checked_channels": 677352,
+  "reference_mismatches": 0,
+  "bypass_exact": true,
+  "source_sha256": "c5afa389f79e0eedfddb4525451b8f0b5fe9e645a2a3e4fc985db54f82e73697",
+  "rtl_sha256": "7c56d60fb898156fa3abc5c3ef12582f1bb734d2ca8ce33e523ddfe9bd197ae6",
+  "output_sha256": "0ae7032f29567b1742fd7dbf79a899440ce8219ec64df535e7b66db72834804d",
+  "parameters": {
+    "ATMOSPHERIC_LIGHT": 240,
+    "OMEGA_Q8": 218,
+    "MIN_TRANSMISSION": 64,
+    "EXTRA_GAIN_CAP_Q6": 48,
+    "STRENGTH": "5/8"
+  },
+  "mean_rgb_before": 140.77929030827235,
+  "mean_rgb_after": 97.56648924373475
+}

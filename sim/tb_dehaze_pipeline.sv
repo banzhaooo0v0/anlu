@@ -9,7 +9,7 @@ module tb_dehaze_pipeline;
     reg [99:0] inputs [0:`DEHAZE_CYCLES-1];
     reg [98:0] expected [0:`DEHAZE_CYCLES-1];
     integer n;
-    dehaze_stream_96 #(.IMG_WIDTH(64),.IMG_HEIGHT(5)) dut (
+    dehaze_stream_96 #(.IMG_WIDTH(256),.IMG_HEIGHT(8)) dut (
         .I_clk(clk),.I_rst_n(rst_n),.I_tvalid(sample[99]),.I_tuser(sample[98]),
         .I_tlast(sample[97]),.I_enable(sample[96]),.I_tdata(sample[95:0]),
         .O_tvalid(valid_o),.O_tuser(user_o),.O_tlast(last_o),.O_tdata(data_o)
@@ -28,7 +28,7 @@ module tb_dehaze_pipeline;
                 $fatal(1,"pixel cycle %0d got=%h expected=%h",n,data_o,expected[n][95:0]);
             @(negedge clk);
         end
-        $display("PASS: dehaze pipeline 480 groups, 6 frames, borders/bubbles/mode latch/saturation");
+        $display("PASS: dehaze pipeline 5120 groups, 10 frames, borders/bubbles/mode latch/saturation/continuous moving ramps");
         $finish;
     end
 endmodule

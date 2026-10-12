@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoDir = Split-Path -Parent $PSScriptRoot
 $buildDir = Join-Path $PSScriptRoot 'build_fog'
-if (!$OutputDir) { $OutputDir = Join-Path $repoDir 'reports/fog_image_20261008' }
+if (!$OutputDir) { $OutputDir = Join-Path $buildDir 'preview' }
 $InputImage = (Resolve-Path -LiteralPath $InputImage).Path
 $OutputDir = [IO.Path]::GetFullPath($OutputDir)
 New-Item -ItemType Directory -Force $buildDir, $OutputDir | Out-Null
